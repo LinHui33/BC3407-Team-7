@@ -94,7 +94,7 @@ def get_appointments_on_date(date_now,conn):
               Output('appointment-date-selection', 'date'),
               Output('create-appointment-user-selection', 'options'),
               Output('home-gantt-schedule', 'figure'),
-              Input('home-loading', 'interval'),
+              Input('home-loading', 'children'),
               )
 def render_home(dummy):
     date_now = datetime.now().replace(tzinfo=timezone.utc)
