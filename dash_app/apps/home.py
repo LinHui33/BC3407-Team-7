@@ -154,6 +154,7 @@ def get_appointments_users_merged(date_now, conn):
         return appointments
     else:
         date = f"'{date_now.replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
+
         appointments = pd.read_sql(
             f"SELECT * FROM appointments left join users using (user_id) where Date(Appointment) = date({date});",
             conn,
