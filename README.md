@@ -1,6 +1,7 @@
 # BC3407 Project
 - XYZ Hospital Data Portal
 - Deployed at: https://hospital-data-portal.herokuapp.com/
+  - Automatic deployments from github enabled https://stackoverflow.com/questions/39197334/automated-heroku-deploy-from-subfolder
 
 # To-do List:
 1. Appointments Screener
