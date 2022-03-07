@@ -9,10 +9,12 @@ from datetime import datetime, timedelta, time, timezone
 from app import app
 import sqlite3
 import numpy as np
+import pytz
 
 # https://stackoverflow.com/questions/49456158/integer-in-python-pandas-becomes-blob-binary-in-sqlite
 sqlite3.register_adapter(np.int64, lambda val: int(val))
 sqlite3.register_adapter(np.int32, lambda val: int(val))
+sgt = pytz.timezone('Asia/Singapore')
 
 create_appointment = html.Div(
     [
@@ -172,7 +174,7 @@ def get_appointments_users_merged(date_now, conn):
               Input('home-loading', 'children'),
               )
 def render_home(dummy):
-    date_now = datetime.now().replace(tzinfo=timezone.utc)
+    date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
     appointments_today = get_appointments_users_merged(date_now, conn)
 
@@ -228,7 +230,7 @@ def render_home(dummy):
               )
 def render_table(clickData, n1):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    date_now = datetime.now().replace(tzinfo=timezone.utc)
+    date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
     appointments_today = get_appointments_users_merged(date_now, conn)
 
@@ -268,7 +270,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
     if None in [user_id, appt_date, timeslot_selected]:
         return dash.no_update
     else:
-        date_now = datetime.now().replace(tzinfo=timezone.utc)
+        date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
         conn = sqlite3.connect('assets/hospital_database.db')
         c = conn.cursor()
         hour_selected = int(timeslot_selected.split(":")[0])
@@ -276,7 +278,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
 
         appointment_id = int(pd.read_sql('SELECT MAX(appointment_id) FROM appointments;', conn, ).iat[0, 0]) + 1
         user_id = int(user_id)
-        registered_date = date_now.isoformat()
+        registered_date = date_now.isoformat().replace("T"," ")
         appointment_date = pd.to_datetime(appt_date)
         appointment_date = pd.to_datetime(
             datetime(appointment_date.year, appointment_date.month, appointment_date.day) + timedelta(
@@ -328,7 +330,7 @@ def add_user(n1, age, gender, diabetes, drinks, hypertension, handicap, smoker, 
     if n1:
         try:
             if None not in data_tuple:
-                # date_now = datetime.now().replace(tzinfo=timezone.utc)
+                # date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
                 sql = f'INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?,?)'
                 c.execute(sql, data_tuple)
                 conn.commit()

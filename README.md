@@ -10,7 +10,6 @@
 5. Login/out functionalities (User access controls)
 6. E-mail notifications functionalities
 7. Host Sqlite3 DB file to a cloud service that persists CRUD operations
-8. Resolving timezone differences due to cloud deployment (Currently deployed to US server)
 
 # Project Instructions
 As the world struggles to contain the ever-changing variants of COVID-19, healthcare industry is facing tremendous stress from issues arising from different aspects. One significant issue is on resource allocation and utilization. Building additional hospital facility may not be a viable solution in a land scarce country like Singapore. One long standing problem among resource utilization is due to missed appointments. When patients do not show up following their appointment time, the missed appointment results in a waste of resources that have been scheduled and planned. There has not been good solution in reducing the no-show rates. In some, the rates are not even been tracked or computed. 
