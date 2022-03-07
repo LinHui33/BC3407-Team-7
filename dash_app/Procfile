@@ -1,1 +1,1 @@
-web: gunicorn --pythonpath dash_app/index:server --timeout 300
+web: gunicorn dash_app/index:server --timeout 300
