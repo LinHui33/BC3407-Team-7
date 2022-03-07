@@ -135,7 +135,7 @@ layout = html.Div([
     ], id='home-loading', fullscreen=False, color='#0D6EFD'),
     # dcc.Loading([
     dbc.Row([
-        dbc.Col(html.H5('Click on the schedule above to filter table'), ),
+        dbc.Col(html.H5('Click on the schedule above to filter appointments'), ),
         dbc.Col(dbc.Button('Reset Filtering', id='reset-home-appointment-information',
                            style={'margin': '0.5rem', "float": "right"}), ),
         # ]),
@@ -147,14 +147,20 @@ layout = html.Div([
 
 
 def get_appointments_users_merged(date_now, conn):
-    appointments = pd.read_sql('SELECT * FROM appointments left join users using (user_id);',
-                               conn,
-                               )
     if date_now == 'all':
+        appointments = pd.read_sql('SELECT * FROM appointments left join users using (user_id);',
+                                   conn,
+                                   )
         return appointments
-    appointments['Appointment'] = pd.to_datetime(appointments['Appointment'])
-    appointments_today = appointments[appointments['Appointment'].dt.date == date_now.date()]
-    return appointments_today
+    else:
+        date = f"'{date_now.replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
+        appointments = pd.read_sql(
+            f"SELECT * FROM appointments left join users using (user_id) where Date(Appointment) = date({date});",
+            conn,
+            )
+        # appointments['Appointment'] = pd.to_datetime(appointments['Appointment'])
+        # appointments_today = appointments[appointments['Appointment'].dt.date == date_now]
+        return appointments
 
 
 @app.callback(Output('home-header-status', 'children'),
@@ -170,7 +176,7 @@ def render_home(dummy):
     appointments_today = get_appointments_users_merged(date_now, conn)
 
     appt_count_today = len(appointments_today)
-    message = f"There are {appt_count_today if appt_count_today > 0 else 'no'} appointment{'' if appt_count_today == 1 else 's'} for today. "
+    message = f"There {'is' if appt_count_today == 1 else 'are'} {appt_count_today if appt_count_today > 0 else 'no'} appointment{'' if appt_count_today == 1 else 's'} for today. "
     message = html.Div([message, 'To view all appointments, please go to the ',
                         html.A("Appointments Screener", href='/appointments', target='_blank'), '.'])
 
@@ -179,7 +185,7 @@ def render_home(dummy):
     date = date_now
 
     appointments_today['Start'] = appointments_today['Appointment']
-    appointments_today['End'] = appointments_today['Start'] + timedelta(minutes=30)
+    appointments_today['End'] = pd.to_datetime(appointments_today['Start'])+ timedelta(minutes=30)
 
     # TODO: Add in predictions to appointments_today
 
@@ -282,7 +288,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
         appointment_week_number = str(appointment_date.week)
         appointment_date = datetime(appointment_date.year, appointment_date.month, appointment_date.day) + timedelta(
             hours=hour_selected, minutes=minute_selected)
-        appointment_date = appointment_date.replace(tzinfo=timezone.utc).isoformat()
+        appointment_date = appointment_date.replace(tzinfo=timezone.utc).isoformat().replace("T"," ")
 
         # TODO: Add in predictions? Any use for admin to know if user will show up or not before submitting?
 
