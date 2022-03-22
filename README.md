@@ -2,7 +2,7 @@
 - XYZ Hospital Data Portal
 - Deployed at: https://hospital-data-portal.herokuapp.com/
   - Automatic deployments from github enabled https://stackoverflow.com/questions/39197334/automated-heroku-deploy-from-subfolder
-
+  - usernames/passwords: admin/admin1234 , nurse/nurse1234
 # To-do List:
 1. Appointments Screener
 2. Patient Screener
