@@ -30,7 +30,16 @@
     1. TODO
 6. Dashboard with Past ML Performance
     1. TODO
-   
+
+# Known Limitations:
+
+1. Application is hosted online on Heroku Any changes made to data files deployed together with the application will not
+   persist - e.g. updates to sqlite .db files while deployed online will only remain temporarily for ~30mins
+    1. Workarounds for this include utilising a cloud DB service (e.g. Heroku's PostgreSQL, or using other cloud
+       services/databases)
+    2. For simplicity's sake, we will assume that this data portal will be deployed on the Hospital's intranet, where
+       changes made to data files will persist. The current deployment only serves as a Proof-of-Concept.
+
 # Project Instructions
 
 As the world struggles to contain the ever-changing variants of COVID-19, healthcare industry is facing tremendous
