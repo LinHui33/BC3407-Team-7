@@ -160,7 +160,7 @@ def get_appointments_users_merged(date_now, conn):
         appointments = pd.read_sql(
             f"SELECT * FROM appointments left join users using (user_id) where Date(Appointment) = date({date});",
             conn,
-            )
+        )
         # appointments['Appointment'] = pd.to_datetime(appointments['Appointment'])
         # appointments_today = appointments[appointments['Appointment'].dt.date == date_now]
         return appointments
@@ -188,7 +188,7 @@ def render_home(dummy):
     date = date_now
 
     appointments_today['Start'] = appointments_today['Appointment']
-    appointments_today['End'] = pd.to_datetime(appointments_today['Start'])+ timedelta(minutes=30)
+    appointments_today['End'] = pd.to_datetime(appointments_today['Start']) + timedelta(minutes=30)
 
     # TODO: Add in predictions to appointments_today
 
@@ -278,7 +278,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
 
         appointment_id = int(pd.read_sql('SELECT MAX(appointment_id) FROM appointments;', conn, ).iat[0, 0]) + 1
         user_id = int(user_id)
-        registered_date = date_now.isoformat().replace("T"," ")
+        registered_date = date_now.isoformat().replace("T", " ")
         appointment_date = pd.to_datetime(appt_date)
         appointment_date = pd.to_datetime(
             datetime(appointment_date.year, appointment_date.month, appointment_date.day) + timedelta(
@@ -291,7 +291,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
         appointment_week_number = str(appointment_date.week)
         appointment_date = datetime(appointment_date.year, appointment_date.month, appointment_date.day) + timedelta(
             hours=hour_selected, minutes=minute_selected)
-        appointment_date = appointment_date.replace(tzinfo=timezone.utc).isoformat().replace("T"," ")
+        appointment_date = appointment_date.replace(tzinfo=timezone.utc).isoformat().replace("T", " ")
 
         # TODO: Add in predictions? Any use for admin to know if user will show up or not before submitting?
 
@@ -307,7 +307,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
         c.execute(sql, data_tuple)
         conn.commit()
 
-        return layout
+        return home_layout
 
 
 @app.callback(

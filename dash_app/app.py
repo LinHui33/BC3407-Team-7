@@ -1,10 +1,6 @@
 import dash
-from dash import dcc, html, dash_table
-from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
-import plotly.graph_objects as go
-import plotly.express as px
-import pandas as pd
+import secrets
 
 app = dash.Dash(__name__,
                 title='XYZ Hospital Data Portal',
@@ -15,5 +11,6 @@ app = dash.Dash(__name__,
                 meta_tags=[{'name': 'viewport',
                             'content': 'width=device-width, initial-scale=1.0'}],
                 )
-server = app.server
 
+server = app.server
+server.config.update(SECRET_KEY=secrets.token_hex(24))

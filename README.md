@@ -8,7 +8,7 @@
 2. Patient Screener
 3. Integration of ML Models for quantifying risk of no-shows
 4. Descriptive Analysis of Appointments/Users dataset (Dashboard)
-5. Login/out functionalities (User access controls)
+5. User level access logic
 6. E-mail notifications functionalities
 7. Host Sqlite3 DB file to a cloud service that persists CRUD operations
 
