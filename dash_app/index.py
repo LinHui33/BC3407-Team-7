@@ -96,7 +96,7 @@ login_manager.login_view = '/login'
 # Create User class with UserMixin
 class User(UserMixin):
     def __init__(self, username, access_level, password):
-        self.username = username
+        self.id = username
         self.access_level = access_level
         self.password = password
         self.authenticated = False
@@ -121,6 +121,5 @@ def load_user(username):
         print(e)
         return None
 # ---------------------------------------------------------------------------------------------------------------------
-
 if __name__ == '__main__':
     app.run_server(debug=False)
