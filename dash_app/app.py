@@ -13,4 +13,5 @@ app = dash.Dash(__name__,
                 )
 
 server = app.server
-server.config.update(SECRET_KEY=secrets.token_hex(24))
+# server.config.update(SECRET_KEY=secrets.token_hex(24))
+server.config.update(SECRET_KEY='my secret key')

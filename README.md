@@ -39,6 +39,11 @@
        services/databases)
     2. For simplicity's sake, we will assume that this data portal will be deployed on the Hospital's intranet, where
        changes made to data files will persist. The current deployment only serves as a Proof-of-Concept.
+2. Flask-login may at times seem a little buggy due to Heroku Deployment
+    1. Best practices would be to vary secret_key in flask app config.
+    2. However, due to Heroku deployment, variations in secret keys across sessions seem to cause the function to be a bit buggy.
+       secret_key was thus kept as a fixed string for this proof-of-concept.
+    3. Again, local intranet deployment will not result in this issue.
 
 # Project Instructions
 
