@@ -96,7 +96,7 @@ login_manager.login_view = '/login'
 # Create User class with UserMixin
 class User(UserMixin):
     def __init__(self, username, access_level, password):
-        self.id = username
+        self.username = username
         self.access_level = access_level
         self.password = password
         self.authenticated = False
