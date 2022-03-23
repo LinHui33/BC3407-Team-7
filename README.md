@@ -16,6 +16,8 @@
 2. User Access
     1. Login/Logout functions were implemented
     2. TODO: Finalize what the nurse/admin can/cannot do
+       1. Nurse: Can view all pages except for ML model & Manage Users, Add, Edit & Remove Appointments & Patients
+       2. Admin: Can do and see everything, including performance of ML Model & Manage Users
 3. Home Page
     1. Interactive gantt chart & data table for current date's appointments
         1. filtering of data table while clicking on chart

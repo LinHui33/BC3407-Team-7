@@ -24,8 +24,8 @@ create_appointment = html.Div(
                 dbc.ModalBody([
                     dbc.Form([
                         dbc.Row([
-                            dbc.Label('Select User ID', width=5),
-                            dbc.Col(dcc.Dropdown(id='create-appointment-user-selection', ), width=5),
+                            dbc.Label('Select Patient ID', width=5),
+                            dbc.Col(dcc.Dropdown(id='create-appointment-patient-selection', ), width=5),
                         ], className="mb-3"),
                         dbc.Row([
                             dbc.Label('Appointment Date', width=5),
@@ -56,7 +56,6 @@ create_appointment = html.Div(
                             ),
                         ])
                     ], justify='end')
-
                 ]),
             ],
             id="create-appointment-modal",
@@ -72,8 +71,8 @@ create_patient = html.Div(
                 dbc.ModalBody([
                     dbc.Form([
                                  dbc.Row([
-                                     dbc.Label('New User ID', width=5),
-                                     dbc.Col(dbc.Input(id='create-patient-user-id', disabled=True), width=5),
+                                     dbc.Label('New Patient ID', width=5),
+                                     dbc.Col(dbc.Input(id='create-patient-patient-id', disabled=True), width=5),
                                  ], className="mb-3"),
                                  dbc.Row([
                                      dbc.Label('Age', width=5),
@@ -148,9 +147,9 @@ layout = html.Div([
 ], id='home-page')
 
 
-def get_appointments_users_merged(date_now, conn):
+def get_appointments_patients_merged(date_now, conn):
     if date_now == 'all':
-        appointments = pd.read_sql('SELECT * FROM appointments left join users using (user_id);',
+        appointments = pd.read_sql('SELECT * FROM appointments left join patients using (patient_id);',
                                    conn,
                                    )
         return appointments
@@ -158,7 +157,7 @@ def get_appointments_users_merged(date_now, conn):
         date = f"'{date_now.replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
 
         appointments = pd.read_sql(
-            f"SELECT * FROM appointments left join users using (user_id) where Date(Appointment) = date({date});",
+            f"SELECT * FROM appointments left join patients using (patient_id) where Date(Appointment) = date({date});",
             conn,
         )
         # appointments['Appointment'] = pd.to_datetime(appointments['Appointment'])
@@ -176,7 +175,7 @@ def get_appointments_users_merged(date_now, conn):
 def render_home(dummy):
     date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
-    appointments_today = get_appointments_users_merged(date_now, conn)
+    appointments_today = get_appointments_patients_merged(date_now, conn)
 
     appt_count_today = len(appointments_today)
     message = f"There {'is' if appt_count_today == 1 else 'are'} {appt_count_today if appt_count_today > 0 else 'no'} appointment{'' if appt_count_today == 1 else 's'} for today. "
@@ -199,7 +198,7 @@ def render_home(dummy):
                           y='appointment_id',
                           color="Show Up",
                           # hover_name="",
-                          hover_data=['user_id', "appointment_id", "Start", "End", 'Show Up'],
+                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show Up'],
                           )
         fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                           paper_bgcolor='#FFFFFF',
@@ -232,7 +231,7 @@ def render_table(clickData, n1):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
-    appointments_today = get_appointments_users_merged(date_now, conn)
+    appointments_today = get_appointments_patients_merged(date_now, conn)
 
     if (clickData is not None) and ('reset-home-appointment-information' not in changed_id):
         clicked_id = clickData['points'][0]['y']
@@ -262,12 +261,12 @@ for modal in ['appointment', 'patient']:
 @app.callback(
     Output('home-page', 'children'),
     Input('create-appointment-submit', "n_clicks"),
-    State('create-appointment-user-selection', 'value'),
+    State('create-appointment-patient-selection', 'value'),
     State("appointment-date-selection", "date"),
     State("create-appointment-timeslot-selection", "value"),
 )
-def toggle_modal(n1, user_id, appt_date, timeslot_selected):
-    if None in [user_id, appt_date, timeslot_selected]:
+def toggle_modal(n1, patient_id, appt_date, timeslot_selected):
+    if None in [patient_id, appt_date, timeslot_selected]:
         return dash.no_update
     else:
         date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
@@ -277,7 +276,7 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
         minute_selected = int(timeslot_selected.split(":")[1])
 
         appointment_id = int(pd.read_sql('SELECT MAX(appointment_id) FROM appointments;', conn, ).iat[0, 0]) + 1
-        user_id = int(user_id)
+        patient_id = int(patient_id)
         registered_date = date_now.isoformat().replace("T", " ")
         appointment_date = pd.to_datetime(appt_date)
         appointment_date = pd.to_datetime(
@@ -293,14 +292,14 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
             hours=hour_selected, minutes=minute_selected)
         appointment_date = appointment_date.replace(tzinfo=timezone.utc).isoformat().replace("T", " ")
 
-        # TODO: Add in predictions? Any use for admin to know if user will show up or not before submitting?
+        # TODO: Add in predictions? Any use for admin to know if patient will show up or not before submitting?
 
         cols = (
-            "appointment_id", "user_id", "Register Time", "Appointment", "Day", "Sms_Reminder", "Waiting Time",
+            "appointment_id", "patient_id", "Register Time", "Appointment", "Day", "Sms_Reminder", "Waiting Time",
             "Show Up",
             "Appointment Month", "Appointment Week Number")
         data_tuple = (
-            appointment_id, user_id, registered_date, appointment_date, day, sms_reminder, waiting_time, show_up,
+            appointment_id, patient_id, registered_date, appointment_date, day, sms_reminder, waiting_time, show_up,
             appointment_month, appointment_week_number)
 
         sql = f'INSERT INTO appointments {cols} VALUES (?,?,?,?,?,?,?,?,?,?)'
@@ -312,34 +311,34 @@ def toggle_modal(n1, user_id, appt_date, timeslot_selected):
 
 @app.callback(
     Output('create-patient-status', 'children'),
-    Output('create-patient-user-id', 'value'),
-    Output('create-appointment-user-selection', 'options'),
+    Output('create-patient-patient-id', 'value'),
+    Output('create-appointment-patient-selection', 'options'),
     Input('create-patient-submit', "n_clicks"),
     State('create-patient-age', 'value'),
     State('create-patient-gender', 'value'),
     [State(f'create-patient-{x}', 'value') for x in
      ['Diabetes', 'Drinks', 'HyperTension', 'Handicap', 'Smoker', 'Scholarship', 'Tuberculosis']]
 )
-def add_user(n1, age, gender, diabetes, drinks, hypertension, handicap, smoker, scholarship, tuberculosis):
+def add_patient(n1, age, gender, diabetes, drinks, hypertension, handicap, smoker, scholarship, tuberculosis):
     conn = sqlite3.connect('assets/hospital_database.db')
     c = conn.cursor()
-    users = pd.read_sql('SELECT * FROM users;', conn)
-    user_options = [{'label': x, 'value': x} for x in users['user_id'].unique()]
-    user_id = int(max(users['user_id'].unique()) + 1)
-    data_tuple = (user_id, age, gender, diabetes, drinks, hypertension, handicap, smoker, scholarship, tuberculosis)
+    patients = pd.read_sql('SELECT * FROM patients;', conn)
+    patient_options = [{'label': x, 'value': x} for x in patients['patient_id'].unique()]
+    patient_id = int(max(patients['patient_id'].unique()) + 1)
+    data_tuple = (patient_id, age, gender, diabetes, drinks, hypertension, handicap, smoker, scholarship, tuberculosis)
     if n1:
         try:
             if None not in data_tuple:
                 # date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
-                sql = f'INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?,?)'
+                sql = f'INSERT INTO patients VALUES (?,?,?,?,?,?,?,?,?,?)'
                 c.execute(sql, data_tuple)
                 conn.commit()
                 return dbc.Alert(
-                    f"New patient {user_id} successfully added to database."), user_id + 1, user_options + [
-                           {'label': x, 'value': x} for x in [user_id]]
+                    f"New patient {patient_id} successfully added to database."), patient_id + 1, patient_options + [
+                           {'label': x, 'value': x} for x in [patient_id]]
             else:
                 return dbc.Alert(f"Error. Please try again.", color='warning'), dash.no_update, dash.no_update
         except:
             return dbc.Alert(f"Error. Please try again.", color='warning'), dash.no_update, dash.no_update
     else:
-        return dash.no_update, user_id, user_options
+        return dash.no_update, patient_id, patient_options

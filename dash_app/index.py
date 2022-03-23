@@ -3,8 +3,9 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app, server
-from flask_login import logout_user, current_user, UserMixin, LoginManager, login_user
-from apps import login, no_such_page, home
+from flask_login import logout_user, current_user, LoginManager, login_user
+from methods.User import User
+from apps import login, no_such_page, home, patient_screener, appointments, dashboard, manage_users
 import sqlite3
 
 server = server # required for deployment
@@ -15,9 +16,11 @@ navbar = html.Div([
         dbc.Col([
             dbc.Button('Log In', className='navbar-btns', id='login-btn', style={'float': 'right'}, href='/login'),
             dbc.Button('Log Out', className='navbar-btns', id="logout-user", style={'display': 'none'}, href='/logout'),
-            dbc.DropdownMenu([dbc.DropdownMenuItem('Patient Screener', href='/patients'),
+            dbc.DropdownMenu([dbc.DropdownMenuItem('Dashboard', href='/dashboard'),
+                              dbc.DropdownMenuItem('Patient Screener', href='/patients'),
                               dbc.DropdownMenuItem('Appointment Screener', href='/appointments'),
-                              dbc.DropdownMenuItem('ML Model', href='/machine-learning'),
+                              dbc.DropdownMenuItem('ML Model Performance', href='/ml', id='navbar-menu-ml', style={"display":"none"}),
+                              dbc.DropdownMenuItem('Manage Users', href='/manage-users', id='navbar-menu-manage-users', style={"display":"none"}),
                               ], className='navbar-btns', label='More', style={'display': 'none'},id='navbar-dropdown-menu'),
         ]),
     ], justify="between",
@@ -49,7 +52,52 @@ def render_content(url, login_trigger):
                 return login.layout
         except:
             return login.layout
-
+    elif url in ['/dashboard']:
+        try:
+            if current_user.is_authenticated:
+                return dashboard.layout
+            else:
+                return login.layout
+        except:
+            return login.layout
+    elif url in ['/patients']:
+        try:
+            if current_user.is_authenticated:
+                return patient_screener.layout
+            else:
+                return login.layout
+        except:
+            return login.layout
+    elif url in ['/appointments']:
+        try:
+            if current_user.is_authenticated:
+                return appointments.layout
+            else:
+                return login.layout
+        except:
+            return login.layout
+    elif url in ['/manage-users']:
+        try:
+            if (current_user.is_authenticated):
+                if (current_user.get_access_level() == 0):
+                    return manage_users.layout
+                else:
+                    return no_such_page.layout
+            else:
+                return login.layout
+        except:
+            return login.layout
+    elif url in ['/ml']:
+        try:
+            if (current_user.is_authenticated):
+                if (current_user.get_access_level() == 0):
+                    return manage_users.layout
+                else:
+                    return no_such_page.layout
+            else:
+                return login.layout
+        except:
+            return login.layout
     elif url in ['/success']:
         if current_user.is_authenticated:
             return home.layout
@@ -71,14 +119,19 @@ def render_content(url, login_trigger):
     Output('logout-user', 'children'),
     Output('logout-user', 'style'),
     Output('logout-user', 'disabled'),
+    Output('navbar-menu-ml', 'style'),
+    Output('navbar-menu-manage-users', 'style'),
     Input('page-output', 'children')
 )
-def login_user_modl(n1):
+def render_navbar(n1):
     if current_user.is_authenticated:
         new_btn_label = html.Div("Log out " + current_user.username)
-        return {'display': 'none'}, True,{'float': 'right'}, new_btn_label, {'float': 'right'}, False
+        if current_user.get_access_level()==0:
+            return {'display': 'none'}, True,{'float': 'right'}, new_btn_label, {'float': 'right'}, False, {"display":"block"}, {"display":"block"}
+        else:
+            return {'display': 'none'}, True,{'float': 'right'}, new_btn_label, {'float': 'right'}, False, {"display":"none"}, {"display":"none"}
     else:
-        return {'float': 'right'}, False,{'display': 'none'}, None, {'display': 'none'}, True
+        return {'float': 'right'}, False,{'display': 'none'}, None, {'display': 'none'}, True, {"display":"block"}, {"display":"block"}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -92,18 +145,6 @@ def login_user_modl(n1):
 login_manager = LoginManager()
 login_manager.init_app(server)
 login_manager.login_view = '/login'
-
-# Create User class with UserMixin
-class User(UserMixin):
-    def __init__(self, username, access_level, password):
-        self.username = username
-        self.access_level = access_level
-        self.password = password
-        self.authenticated = False
-
-    def get_id(self):
-        return (self.username)
-
 # callback to reload the user object
 @login_manager.user_loader
 def load_user(username):
@@ -111,7 +152,7 @@ def load_user(username):
         conn = sqlite3.connect('assets/hospital_database.db')
         cursor = conn.cursor()
         cursor.execute(
-            f"SELECT * FROM login  WHERE (user_id = '{username}');")
+            f"SELECT * FROM users  WHERE (user_id = '{username}');")
         lu = cursor.fetchone()
         if lu is None:
             return None
