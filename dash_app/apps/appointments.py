@@ -80,7 +80,7 @@ def toggle_modal(n1, n2, is_open):
 
 layout = html.Div([
     html.H5("Appointments Screener"),
-    html.Div("Only the latest 20 appointments registered are shown by default.", style={'margin-bottom': '1rem'}),
+    html.Div("Only the latest 30 appointments registered are shown by default.", style={'margin-bottom': '1rem'}),
     html.Div(
         dbc.Row([
             dbc.Row([
@@ -230,50 +230,52 @@ def render_options(page_load):
 def render_table(n1, appointment_id, patient_id, appointment_date_start, appointment_date_end, registered_date_start,
                  registered_date_end):
     conn = sqlite3.connect('assets/hospital_database.db')
-    basic_sql = f'SELECT * FROM appointments WHERE TRUE'
+    if n1:
+        basic_sql = f'SELECT * FROM appointments WHERE TRUE'
 
-    condition1 = appointment_id not in [None, []]
-    condition2 = patient_id not in [None, []]
-    condition3 = appointment_date_start is not None
-    condition4 = appointment_date_end is not None
-    condition5 = registered_date_start is not None
-    condition6 = registered_date_end is not None
-    condition7 = (condition1, condition2, condition3, condition4, condition5, condition6)
+        condition1 = appointment_id not in [None, []]
+        condition2 = patient_id not in [None, []]
+        condition3 = appointment_date_start is not None
+        condition4 = appointment_date_end is not None
+        condition5 = registered_date_start is not None
+        condition6 = registered_date_end is not None
 
-    if condition1:
-        appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
-            tuple(appointment_id)).replace(',', '')
-        basic_sql += f' AND appointment_id IN {tuple(appointment_id_edited)}'
+        print(appointment_date_start,appointment_date_end,registered_date_start,registered_date_end)
 
-    if condition2:
-        patient_id_edited = tuple(patient_id) if len(patient_id) > 1 else str(tuple(patient_id)).replace(',', '')
-        basic_sql += f' AND patient_id IN {patient_id_edited}'
+        if condition1:
+            appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
+                tuple(appointment_id)).replace(',', '')
+            basic_sql += f' AND appointment_id IN {tuple(appointment_id_edited)}'
 
-    if condition3:
-        appointment_date_start = pd.to_datetime(appointment_date_start).tz_localize('UTC').tz_convert(
-            'Asia/Singapore')
-        basic_sql += f' AND Appointment >= "{appointment_date_start}"'
+        if condition2:
+            patient_id_edited = tuple(patient_id) if len(patient_id) > 1 else str(tuple(patient_id)).replace(',', '')
+            basic_sql += f' AND patient_id IN {patient_id_edited}'
 
-    if condition4:
-        appointment_date_end = pd.to_datetime(appointment_date_end).tz_localize('UTC').tz_convert(
-            'Asia/Singapore')
-        basic_sql += f' AND Appointment <= "{appointment_date_end}"'
+        if condition3:
+            appointment_date_start = pd.to_datetime(appointment_date_start).tz_localize('UTC').tz_convert(
+                'Asia/Singapore')
+            basic_sql += f' AND Appointment >= "{appointment_date_start}"'
 
-    if condition5:
-        registered_date_start = pd.to_datetime(registered_date_start).tz_localize('UTC').tz_convert(
-            'Asia/Singapore')
-        basic_sql += f' AND "Register Time" >= "{registered_date_start}"'
+        if condition4:
+            appointment_date_end = pd.to_datetime(appointment_date_end).tz_localize('UTC').tz_convert(
+                'Asia/Singapore')
+            basic_sql += f' AND Appointment <= "{appointment_date_end}"'
 
-    if condition6:
-        registered_date_end = pd.to_datetime(registered_date_end).tz_localize('UTC').tz_convert(
-            'Asia/Singapore')
-        basic_sql += f' AND "Register Time" <= "{registered_date_end}"'
+        if condition5:
+            registered_date_start = pd.to_datetime(registered_date_start).tz_localize('UTC').tz_convert(
+                'Asia/Singapore')
+            basic_sql += f' AND "Register Time" >= "{registered_date_start}"'
 
-    if condition7:
-        basic_sql = f'SELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 20'
+        if condition6:
+            registered_date_end = pd.to_datetime(registered_date_end).tz_localize('UTC').tz_convert(
+                'Asia/Singapore')
+            basic_sql += f' AND "Register Time" <= "{registered_date_end}"'
 
-    basic_sql += ';'
+        basic_sql += ';'
+    else:
+        basic_sql = f'SELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 30;'
 
+    print(basic_sql)
     c = conn.cursor()
     query = c.execute(basic_sql)
     cols = [column[0] for column in query.description]
