@@ -240,8 +240,6 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
         condition5 = registered_date_start is not None
         condition6 = registered_date_end is not None
 
-        print(appointment_date_start,appointment_date_end,registered_date_start,registered_date_end)
-
         if condition1:
             appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
                 tuple(appointment_id)).replace(',', '')
@@ -277,10 +275,15 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
 
     print(basic_sql)
     c = conn.cursor()
+
     query = c.execute(basic_sql)
     cols = [column[0] for column in query.description]
     appointments = pd.DataFrame(c.fetchall())
-    appointments.columns = cols
+
+    try:
+        appointments.columns = cols
+    except:
+        data = None
 
     if len(appointments.index) > 0:
         data = appointments.to_dict('records')
@@ -288,6 +291,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
     else:
         data = None
         columns = None
+
     return data, columns
 
 
