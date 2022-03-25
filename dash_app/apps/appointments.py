@@ -21,7 +21,7 @@ edit_appointment_modal = html.Div(
     [
         dbc.Modal(
             [
-                dbc.ModalHeader(dbc.ModalTitle("Edit Appointment")), # Todo, also manage zindex better
+                dbc.ModalHeader(dbc.ModalTitle("Edit Appointment")),  # Todo, also manage zindex better
                 dbc.ModalBody([
                     dbc.Form([
                         dbc.Row([
@@ -80,6 +80,7 @@ def toggle_modal(n1, n2, is_open):
 
 layout = html.Div([
     html.H5("Appointments Screener"),
+    html.Div("Only the latest 20 appointments registered by be shown by default.", style={'margin-bottom': '1rem'}),
     html.Div(
         dbc.Row([
             dbc.Row([
@@ -109,7 +110,7 @@ layout = html.Div([
                                                  style={'zIndex': '900'})])
                 ]),
             ], style={"margin-top": '1rem'}),
-            dbc.Col([dbc.Button("Update Results", id="update-appointments-screener",
+            dbc.Col([dbc.Button("Query Results", id="update-appointments-screener",
                                 className="ms-auto", n_clicks=0,
                                 style={"margin": '1rem', 'float': 'right'}
                                 ),
@@ -193,59 +194,55 @@ def render_options(page_load):
 def render_table(n1, appointment_id, patient_id, appointment_date_start, appointment_date_end, registered_date_start,
                  registered_date_end):
     conn = sqlite3.connect('assets/hospital_database.db')
+    basic_sql = f'SELECT * FROM appointments WHERE TRUE'
 
-    if appointment_date_start is not None:
+    condition1 = appointment_id not in [None, []]
+    condition2 = patient_id not in [None, []]
+    condition3 = appointment_date_start is not None
+    condition4 = appointment_date_end is not None
+    condition5 = registered_date_start is not None
+    condition6 = registered_date_end is not None
+    condition7 = (condition1,condition2,condition3,condition4,condition5,condition6)
+
+    if condition1:
+        appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
+            tuple(appointment_id)).replace(',', '')
+        basic_sql += f' AND appointment_id IN {tuple(appointment_id_edited)}'
+
+    if condition2:
+        patient_id_edited = tuple(patient_id) if len(patient_id) > 1 else str(tuple(patient_id)).replace(',', '')
+        basic_sql += f' AND patient_id IN {patient_id_edited}'
+
+    if condition3:
         appointment_date_start = pd.to_datetime(appointment_date_start).tz_localize('UTC').tz_convert(
             'Asia/Singapore')
+        basic_sql +=  f' AND Appointment >= "{appointment_date_start}"'
 
-    if appointment_date_end is not None:
+    if condition4:
         appointment_date_end = pd.to_datetime(appointment_date_end).tz_localize('UTC').tz_convert(
             'Asia/Singapore')
+        basic_sql += f' AND Appointment <= "{appointment_date_end}"'
 
-    if registered_date_start is not None:
+    if condition5:
         registered_date_start = pd.to_datetime(registered_date_start).tz_localize('UTC').tz_convert(
             'Asia/Singapore')
+        basic_sql +=  f' AND "Register Time" >= "{registered_date_start}"'
 
-    if registered_date_end is not None:
+    if condition6:
         registered_date_end = pd.to_datetime(registered_date_end).tz_localize('UTC').tz_convert(
             'Asia/Singapore')
+        basic_sql += f' AND "Register Time" <= "{registered_date_end}"'
 
-    appointments = pd.read_sql('SELECT * FROM appointments;', conn)
+    if condition7:
+        basic_sql = f'SELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 20'
 
-    appointments.loc[:, 'Register Time'] = pd.to_datetime(appointments['Register Time'])
-    appointments.loc[:, 'Appointment'] = pd.to_datetime(appointments['Appointment'])
+    basic_sql += ';'
 
-    # test = pd.to_datetime('2014-01-03 00:00:00+00:00').tz_convert('Asia/Singapore')
-    # print( appointments.loc[appointments['Register Time']<=test,:])
-
-    try:
-        if appointment_id not in [None, []]:
-            appointments = appointments.loc[appointments['appointment_id'].isin(appointment_id), :]
-    except:
-        pass
-    try:
-        if patient_id not in [None, []]:
-            appointments = appointments.loc[appointments['patient_id'].isin(patient_id), :]
-    except:
-        pass
-    try:
-        appointments = appointments.loc[appointments['Appointment'] >= appointment_date_start, :]
-    except:
-        pass
-    try:
-        appointments = appointments.loc[appointments['Appointment'] <= appointment_date_end, :]
-    except:
-        pass
-
-    try:
-        appointments = appointments.loc[appointments['Register Time'] >= registered_date_start, :]
-    except:
-        pass
-
-    try:
-        appointments = appointments.loc[appointments['Register Time'] <= registered_date_end, :]
-    except:
-        pass
+    c = conn.cursor()
+    query = c.execute(basic_sql)
+    cols = [column[0] for column in query.description]
+    appointments = pd.DataFrame(c.fetchall())
+    appointments.columns = cols
 
     if len(appointments.index) > 0:
         data = appointments.to_dict('records')
