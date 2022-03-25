@@ -80,7 +80,7 @@ def toggle_modal(n1, n2, is_open):
 
 layout = html.Div([
     html.H5("Appointments Screener"),
-    html.Div("Only the latest 30 appointments registered are shown by default.", style={'margin-bottom': '1rem'}),
+    html.Div("Only the latest 30 appointments registered are shown by default. Max allowable records to be returned per query is 500.", style={'margin-bottom': '1rem'}),
     html.Div(
         dbc.Row([
             dbc.Row([
@@ -242,7 +242,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
 
         if condition1:
             appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
-                tuple(appointment_id)).replace(',', '')
+                tuple(appointment_id)).replace(',','')
             basic_sql += f' AND appointment_id IN {tuple(appointment_id_edited)}'
 
         if condition2:
@@ -269,7 +269,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
                 'Asia/Singapore')
             basic_sql += f' AND "Register Time" <= "{registered_date_end}"'
 
-        basic_sql += ';'
+        basic_sql += ' LIMIT 500;'
     else:
         basic_sql = f'SELECT * FROM appointments ORDER BY appointment_id DESC LIMIT 30;'
 
