@@ -14,7 +14,7 @@
   height: 2rem;
   color: black;
   vertical-align: text-bottom;
-  border: 0.25em solid #003D7F;
+  border: 0.25em solid #0D6EFD;
   border-right-color: transparent;
   border-radius: 50%;
   -webkit-animation: spinner-border 0.75s linear infinite;
@@ -22,7 +22,6 @@
   margin-top: 2rem;
   margin-left: 48.5%;
 }
-
 .navbar-custom{
   background-color: #0D6EFD;
 }

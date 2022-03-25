@@ -21,7 +21,7 @@ edit_appointment_modal = html.Div(
     [
         dbc.Modal(
             [
-                dbc.ModalHeader(dbc.ModalTitle("Edit Appointment")),  # Todo, also manage zindex better
+                dbc.ModalHeader(dbc.ModalTitle("Edit Appointment")),
                 dbc.ModalBody([
                     dbc.Form([
                         dbc.Row([
@@ -60,7 +60,7 @@ edit_appointment_modal = html.Div(
                 ]),
             ],
             id="edit-appointment-modal",
-            style={'zIndex': '10000'},
+            # style={'zIndex': '1'},
             is_open=False,
         ),
     ]
@@ -85,29 +85,29 @@ layout = html.Div([
         dbc.Row([
             dbc.Row([
                 dbc.Col([dbc.Row(dbc.Label('Appointment ID')),
-                         dbc.Row(dcc.Dropdown(placeholder='Appointment ID', multi=True,
+                         dbc.Row(dbc.Spinner(dcc.Dropdown(placeholder='Appointment ID', multi=True,
                                               id='update-appointments-appointment-id',
-                                              style={'zIndex': '1000'}
-                                              )),
+                                              style={'zIndex': '1'}
+                                              ), fullscreen=False, color='#0D6EFD')),
                          ]),
                 dbc.Col([dbc.Row(dbc.Label('Patient ID')),
                          dbc.Row(
-                             dcc.Dropdown(placeholder='Patient ID', multi=True, id='update-appointments-patient-id',
-                                          style={'zIndex': '1000'})),
+                             dbc.Spinner(dcc.Dropdown(placeholder='Patient ID', multi=True, id='update-appointments-patient-id',
+                                          style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')),
                          ]),
             ]),
             dbc.Row([
                 dbc.Col([
                     dbc.Row(dbc.Label('Registered Date')),
-                    dbc.Row([dcc.DatePickerRange(id='update-appointments-registered-date',
+                    dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='update-appointments-registered-date',
                                                  clearable=True,
-                                                 style={'zIndex': '900'})])
+                                                 style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')])
                 ]),
                 dbc.Col([
                     dbc.Row(dbc.Label('Appointment Date')),
-                    dbc.Row([dcc.DatePickerRange(id='update-appointments-appointment-date',
+                    dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='update-appointments-appointment-date',
                                                  clearable=True,
-                                                 style={'zIndex': '900'})])
+                                                 style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')])
                 ]),
             ], style={"margin-top": '1rem'}),
             dbc.Col([dbc.Button("Query Results", id="update-appointments-screener",
@@ -125,7 +125,7 @@ layout = html.Div([
     html.Hr(),
     dbc.Spinner([
         dash_table.DataTable(
-            style_table={'overflowX': 'auto', 'height': 300},
+            style_table={'overflowX': 'auto', 'height': 300,'zIndex':'0'},
             style_cell={'font-family': 'Arial', 'minWidth': 95, 'width': 95, 'maxWidth': 95},
             id='appointments-data-table',
             virtualization=True,
