@@ -143,7 +143,7 @@ def render_navbar(n1):
                 "display": "none"}, {"display": "none"}, {'display': 'none'}
     else:
         return {'float': 'right'}, False, {'display': 'none'}, None, {'display': 'none'}, True, {"display": "block"}, {
-            "display": "block"}
+            "display": "block"}, {"display": "block"}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
