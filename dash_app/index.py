@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 from app import app, server
 from flask_login import logout_user, current_user, LoginManager, login_user
 from methods.User import User
-from apps import login, no_such_page, home, patient_screener, appointments, dashboard, manage_users
+from apps import login, no_such_page, home, patient_screener, appointments, dashboard, manage_users, ml
 import sqlite3
 
 server = server # required for deployment
@@ -91,7 +91,7 @@ def render_content(url, login_trigger):
         try:
             if (current_user.is_authenticated):
                 if (current_user.get_access_level() == 0):
-                    return manage_users.layout
+                    return ml.layout
                 else:
                     return no_such_page.layout
             else:

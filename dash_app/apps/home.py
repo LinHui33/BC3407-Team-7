@@ -142,6 +142,14 @@ layout = html.Div([
         # ]),
     ]),
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
+    dbc.Row([
+        dbc.Col(html.H5('Appointment Insights'), style={'margin':'1rem'}),
+    ]),
+    dbc.Spinner(dbc.Alert("SAMPLE Insight: There are 0 appointments booked for the next 2 weeks."
+                          "Expected free capacity is 100%."
+                          "Expected no-show rate is X%."
+                          "It is highly recommended that you book more appointments soon.", color='success',
+                          style={'margin': "1rem"}), fullscreen=False, color='#0D6EFD'),
 
     # dcc.Interval(n_intervals=1000,id='refresh-home')
 ], id='home-page')
