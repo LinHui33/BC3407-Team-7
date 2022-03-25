@@ -132,22 +132,37 @@ layout = html.Div([
 
 @app.callback(Output('tabs-content-output', 'children'),
               Input('tabs-styled-with-inline', 'value'))
-def render_content(tab): #TODO + Interact with 
+def render_content(tab): #TODO + Interact with Filters
+    import plotly.express as px
+    df = px.data.gapminder().query("continent=='Oceania'")  # replace with your own data source
+    fig = px.line(
+        df, x="year", y="lifeExp", color="country",
+        title="Sample Graph. Hover over points to see the change")
+    fig.update_layout(
+        font_family="Helvetica",
+        title_font_family="Helvetica",
+        showlegend=False,  # change True/False accordingly
+        plot_bgcolor="white",
+        hovermode='x unified',  # see https://plotly.com/python/hover-text-and-formatting/
+    )
+    fig.update_xaxes(visible=True, fixedrange=False)  # change True/False accordingly
+    fig.update_yaxes(visible=True, fixedrange=False)  # change True/False accordingly
+
     if tab == 'dashboard-tab-1':
         content = html.Div([html.Div('Combo Graph of Show up rates over time'),
-                            dcc.Graph(),
+                            dcc.Graph(figure=fig),
                             ])
     elif tab == 'dashboard-tab-2':
-        content = html.Div([dcc.Graph(),
+        content = html.Div([dcc.Graph(figure=fig),
                             ])
     elif tab == 'dashboard-tab-3':
-        content = html.Div([dcc.Graph(),
+        content = html.Div([dcc.Graph(figure=fig),
                             ])
     elif tab == 'dashboard-tab-4':
-        content = html.Div([dcc.Graph(),
+        content = html.Div([dcc.Graph(figure=fig),
                             ])
     elif tab == 'dashboard-tab-5':
-        content = html.Div([dcc.Graph(),
+        content = html.Div([dcc.Graph(figure=fig),
                             ])
     return content
 
