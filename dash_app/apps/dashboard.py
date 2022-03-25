@@ -105,6 +105,26 @@ layout = html.Div([
                                    ], style={"margin": '1rem'}),
                                    ])
                 ),
+        dcc.Tab(label='Patient Characteristics', value='dashboard-tab-5', style=tab_style,
+                selected_style=tab_selected_style,
+                children=html.Div([html.H5('Filter by:'),
+                                   dbc.Row([
+                                       dbc.Col([
+                                           dbc.Row([html.Div(
+                                               [dbc.Label('Registered Date',
+                                                          style={'float': 'left', 'margin-right': '1rem'}),
+
+                                                ])
+                                           ]),
+                                           dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='dashboard-tab-5-registered-date',
+                                                                                    clearable=True,
+                                                                                    style={'zIndex': '1'}),
+                                                                fullscreen=False,
+                                                                color='#0D6EFD')])
+                                       ]),
+                                   ], style={"margin": '1rem'}),
+                                   ])
+                ),
     ], style=tabs_styles),
     html.Div(id='tabs-content-output', style={"margin": "1rem"})
 ])
@@ -124,6 +144,9 @@ def render_content(tab): #TODO + Interact with
         content = html.Div([dcc.Graph(),
                             ])
     elif tab == 'dashboard-tab-4':
+        content = html.Div([dcc.Graph(),
+                            ])
+    elif tab == 'dashboard-tab-5':
         content = html.Div([dcc.Graph(),
                             ])
     return content

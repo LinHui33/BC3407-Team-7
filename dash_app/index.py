@@ -8,7 +8,7 @@ from methods.User import User
 from apps import login, no_such_page, home, patient_screener, appointments, dashboard, manage_users, ml
 import sqlite3
 
-server = server # required for deployment
+server = server  # required for deployment
 
 navbar = html.Div([
     dbc.Row([
@@ -16,12 +16,15 @@ navbar = html.Div([
         dbc.Col([
             dbc.Button('Log In', className='navbar-btns', id='login-btn', style={'float': 'right'}, href='/login'),
             dbc.Button('Log Out', className='navbar-btns', id="logout-user", style={'display': 'none'}, href='/logout'),
-            dbc.DropdownMenu([dbc.DropdownMenuItem('Dashboard', href='/dashboard'),
+            dbc.DropdownMenu([dbc.DropdownMenuItem('Dashboard', href='/dashboard', id='navbar-menu-dashboard'),
                               dbc.DropdownMenuItem('Patient Screener', href='/patients'),
                               dbc.DropdownMenuItem('Appointment Screener', href='/appointments'),
-                              dbc.DropdownMenuItem('ML Model Performance', href='/ml', id='navbar-menu-ml', style={"display":"none"}),
-                              dbc.DropdownMenuItem('Manage Users', href='/manage-users', id='navbar-menu-manage-users', style={"display":"none"}),
-                              ], className='navbar-btns', label='More', style={'display': 'none'},id='navbar-dropdown-menu'),
+                              dbc.DropdownMenuItem('ML Model Performance', href='/ml', id='navbar-menu-ml',
+                                                   style={"display": "none"}),
+                              dbc.DropdownMenuItem('Manage Users', href='/manage-users', id='navbar-menu-manage-users',
+                                                   style={"display": "none"}),
+                              ], className='navbar-btns', label='More', style={'display': 'none'},
+                             id='navbar-dropdown-menu'),
         ]),
     ], justify="between",
     ),
@@ -35,16 +38,17 @@ app.layout = html.Div([
     dcc.Location(id="url"),
     navbar,
     html.Div(id='page-output', style={'margin': '1rem'}),
-    html.Div(id='login-page-status', style={'margin': 'auto','margin-top':'1rem'}),
+    html.Div(id='login-page-status', style={'margin': 'auto', 'margin-top': '1rem'}),
     footer,
 ])
+
 
 @app.callback(Output('page-output', 'children'),
               Input('url', 'pathname'),
               Input('login-page-status', 'children'),
               )
 def render_content(url, login_trigger):
-    if url in ['/', '/home','/login']:
+    if url in ['/', '/home', '/login']:
         try:
             if current_user.is_authenticated:
                 return home.layout
@@ -55,7 +59,10 @@ def render_content(url, login_trigger):
     elif url in ['/dashboard']:
         try:
             if current_user.is_authenticated:
-                return dashboard.layout
+                if (current_user.get_access_level() == 0):
+                    return dashboard.layout
+                else:
+                    return no_such_page.layout
             else:
                 return login.layout
         except:
@@ -112,6 +119,7 @@ def render_content(url, login_trigger):
     else:
         return no_such_page.layout
 
+
 @app.callback(
     Output('login-btn', 'style'),
     Output('login-btn', 'disabled'),
@@ -121,17 +129,21 @@ def render_content(url, login_trigger):
     Output('logout-user', 'disabled'),
     Output('navbar-menu-ml', 'style'),
     Output('navbar-menu-manage-users', 'style'),
+    Output('navbar-menu-dashboard', 'style'),
     Input('page-output', 'children')
 )
 def render_navbar(n1):
     if current_user.is_authenticated:
         new_btn_label = html.Div("Log out " + current_user.username)
-        if current_user.get_access_level()==0:
-            return {'display': 'none'}, True,{'float': 'right'}, new_btn_label, {'float': 'right'}, False, {"display":"block"}, {"display":"block"}
+        if current_user.get_access_level() == 0:
+            return {'display': 'none'}, True, {'float': 'right'}, new_btn_label, {'float': 'right'}, False, {
+                "display": "block"}, {"display": "block"}, {'display': 'block'}
         else:
-            return {'display': 'none'}, True,{'float': 'right'}, new_btn_label, {'float': 'right'}, False, {"display":"none"}, {"display":"none"}
+            return {'display': 'none'}, True, {'float': 'right'}, new_btn_label, {'float': 'right'}, False, {
+                "display": "none"}, {"display": "none"}, {'display': 'none'}
     else:
-        return {'float': 'right'}, False,{'display': 'none'}, None, {'display': 'none'}, True, {"display":"block"}, {"display":"block"}
+        return {'float': 'right'}, False, {'display': 'none'}, None, {'display': 'none'}, True, {"display": "block"}, {
+            "display": "block"}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -145,6 +157,8 @@ def render_navbar(n1):
 login_manager = LoginManager()
 login_manager.init_app(server)
 login_manager.login_view = '/login'
+
+
 # callback to reload the user object
 @login_manager.user_loader
 def load_user(username):
@@ -161,6 +175,8 @@ def load_user(username):
     except Exception as e:
         print(e)
         return None
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
     app.run_server(debug=False)

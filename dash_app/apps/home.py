@@ -154,7 +154,6 @@ layout = html.Div([
     # dcc.Interval(n_intervals=1000,id='refresh-home')
 ], id='home-page')
 
-
 def get_appointments_patients_merged(date_now, conn):
     if date_now == 'all':
         appointments = pd.read_sql('SELECT * FROM appointments left join patients using (patient_id);',
