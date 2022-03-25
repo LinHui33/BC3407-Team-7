@@ -80,34 +80,50 @@ def toggle_modal(n1, n2, is_open):
 
 layout = html.Div([
     html.H5("Appointments Screener"),
-    html.Div("Only the latest 20 appointments registered by be shown by default.", style={'margin-bottom': '1rem'}),
+    html.Div("Only the latest 20 appointments registered are shown by default.", style={'margin-bottom': '1rem'}),
     html.Div(
         dbc.Row([
             dbc.Row([
-                dbc.Col([dbc.Row(dbc.Label('Appointment ID')),
-                         dbc.Row(dbc.Spinner(dcc.Dropdown(placeholder='Appointment ID', multi=True,
-                                              id='update-appointments-appointment-id',
-                                              style={'zIndex': '1'}
-                                              ), fullscreen=False, color='#0D6EFD')),
-                         ]),
-                dbc.Col([dbc.Row(dbc.Label('Patient ID')),
+                dbc.Col(
+                    [dbc.Row([html.Div([dbc.Label('Appointment ID', style={'float': 'left', 'margin-right': '1rem'}),
+
+                                        ])
+                              ]),
+                     dbc.Row(dbc.Spinner(dcc.Dropdown(placeholder='Appointment ID', multi=True,
+                                                      id='update-appointments-appointment-id',
+                                                      style={'zIndex': '1'}
+                                                      ), fullscreen=False, color='#0D6EFD')),
+                     ]),
+                dbc.Col([dbc.Row([html.Div([dbc.Label('Patient ID', style={'float': 'left', 'margin-right': '1rem'}),
+
+                                            ])
+                                  ]),
                          dbc.Row(
-                             dbc.Spinner(dcc.Dropdown(placeholder='Patient ID', multi=True, id='update-appointments-patient-id',
-                                          style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')),
+                             dbc.Spinner(
+                                 dcc.Dropdown(placeholder='Patient ID', multi=True, id='update-appointments-patient-id',
+                                              style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')),
                          ]),
             ]),
             dbc.Row([
                 dbc.Col([
-                    dbc.Row(dbc.Label('Registered Date')),
+                    dbc.Row([html.Div([dbc.Label('Registered Date', style={'float': 'left', 'margin-right': '1rem'}),
+
+                                       ])
+                             ]),
                     dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='update-appointments-registered-date',
-                                                 clearable=True,
-                                                 style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')])
+                                                             clearable=True,
+                                                             style={'zIndex': '1'}), fullscreen=False,
+                                         color='#0D6EFD')])
                 ]),
                 dbc.Col([
-                    dbc.Row(dbc.Label('Appointment Date')),
+                    dbc.Row([html.Div([dbc.Label('Appointment Date', style={'float': 'left', 'margin-right': '1rem'}),
+
+                                       ])
+                             ]),
                     dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='update-appointments-appointment-date',
-                                                 clearable=True,
-                                                 style={'zIndex': '1'}), fullscreen=False, color='#0D6EFD')])
+                                                             clearable=True,
+                                                             style={'zIndex': '1'}), fullscreen=False,
+                                         color='#0D6EFD')])
                 ]),
             ], style={"margin-top": '1rem'}),
             dbc.Col([dbc.Button("Query Results", id="update-appointments-screener",
@@ -125,12 +141,13 @@ layout = html.Div([
     html.Hr(),
     dbc.Spinner([
         dash_table.DataTable(
-            style_table={'overflowX': 'auto', 'height': 300,'zIndex':'0'},
+            style_table={'overflowX': 'auto', 'height': 300, 'zIndex': '0'},
             style_cell={'font-family': 'Arial', 'minWidth': 95, 'width': 95, 'maxWidth': 95},
             id='appointments-data-table',
             virtualization=True,
             fixed_rows={'headers': True},
             filter_action='native',
+            sort_action='native',
         )
     ], fullscreen=False, color='#0D6EFD')
 
@@ -139,29 +156,39 @@ layout = html.Div([
 
 # Todo: Enable editing of Appointments
 
-
 @app.callback(Output("update-appointments-appointment-id", 'options'),
-              Output("update-appointments-patient-id", 'options'),
-              Output("update-appointments-registered-date", 'max_date_allowed'),
-              Output("update-appointments-registered-date", 'min_date_allowed'),
-              Output("update-appointments-appointment-date", 'max_date_allowed'),
-              Output("update-appointments-appointment-date", 'min_date_allowed'),
               Input('appointments-layout', 'children'),
               )
 def render_options(page_load):
     conn = sqlite3.connect('assets/hospital_database.db')
     cursor = conn.cursor()
-
-    cursor.execute(
-        f"SELECT DISTINCT(patient_id) FROM appointments;")
-    all_patients = [x for x in list(sorted(cursor.fetchall()))]
-    all_patients = [{'label': x[0], 'value': x[0]} for x in all_patients]
-
     cursor.execute(
         f"SELECT DISTINCT(appointment_id) FROM appointments;")
     all_appointments = [x for x in list(sorted(cursor.fetchall()))]
     all_appointments = [{'label': x[0], 'value': x[0]} for x in all_appointments]
+    return all_appointments
 
+
+@app.callback(Output("update-appointments-patient-id", 'options'),
+              Input('appointments-layout', 'children'),
+              )
+def render_options(page_load):
+    conn = sqlite3.connect('assets/hospital_database.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        f"SELECT DISTINCT(patient_id) FROM appointments;")
+    all_patients = [x for x in list(sorted(cursor.fetchall()))]
+    all_patients = [{'label': x[0], 'value': x[0]} for x in all_patients]
+    return all_patients
+
+
+@app.callback(Output("update-appointments-registered-date", 'max_date_allowed'),
+              Output("update-appointments-registered-date", 'min_date_allowed'),
+              Input('appointments-layout', 'children'),
+              )
+def render_options(page_load):
+    conn = sqlite3.connect('assets/hospital_database.db')
+    cursor = conn.cursor()
     cursor.execute(
         f"""SELECT MAX("Register Time") FROM appointments;""")
     max_register_time = cursor.fetchone()[0]
@@ -170,15 +197,24 @@ def render_options(page_load):
         f"""SELECT MIN("Register Time") FROM appointments;""")
     min_register_time = cursor.fetchone()[0]
 
+    return max_register_time, min_register_time
+
+
+@app.callback(Output("update-appointments-appointment-date", 'max_date_allowed'),
+              Output("update-appointments-appointment-date", 'min_date_allowed'),
+              Input('appointments-layout', 'children'),
+              )
+def render_options(page_load):
+    conn = sqlite3.connect('assets/hospital_database.db')
+    cursor = conn.cursor()
     cursor.execute(
         f"SELECT MAX(Appointment) FROM appointments;")
     max_appt_time = cursor.fetchone()[0]
-
     cursor.execute(
         f"SELECT MIN(Appointment) FROM appointments;")
     min_appt_time = cursor.fetchone()[0]
 
-    return all_patients, all_appointments, max_register_time, min_register_time, max_appt_time, min_appt_time
+    return max_appt_time, min_appt_time
 
 
 @app.callback(Output('appointments-data-table', 'data'),
@@ -202,7 +238,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
     condition4 = appointment_date_end is not None
     condition5 = registered_date_start is not None
     condition6 = registered_date_end is not None
-    condition7 = (condition1,condition2,condition3,condition4,condition5,condition6)
+    condition7 = (condition1, condition2, condition3, condition4, condition5, condition6)
 
     if condition1:
         appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
@@ -216,7 +252,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
     if condition3:
         appointment_date_start = pd.to_datetime(appointment_date_start).tz_localize('UTC').tz_convert(
             'Asia/Singapore')
-        basic_sql +=  f' AND Appointment >= "{appointment_date_start}"'
+        basic_sql += f' AND Appointment >= "{appointment_date_start}"'
 
     if condition4:
         appointment_date_end = pd.to_datetime(appointment_date_end).tz_localize('UTC').tz_convert(
@@ -226,7 +262,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
     if condition5:
         registered_date_start = pd.to_datetime(registered_date_start).tz_localize('UTC').tz_convert(
             'Asia/Singapore')
-        basic_sql +=  f' AND "Register Time" >= "{registered_date_start}"'
+        basic_sql += f' AND "Register Time" >= "{registered_date_start}"'
 
     if condition6:
         registered_date_end = pd.to_datetime(registered_date_end).tz_localize('UTC').tz_convert(

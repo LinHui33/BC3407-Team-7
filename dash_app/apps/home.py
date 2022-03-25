@@ -242,6 +242,7 @@ def render_table(clickData, n1):
         columns=[{"name": i, "id": i} for i in appointments_today.columns],
         style_table={'overflowX': 'auto'},
         style_cell={'font-family': 'Arial'},
+        sort_action='native',
     )
     return table
 
