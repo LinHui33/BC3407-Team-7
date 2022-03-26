@@ -314,7 +314,7 @@ def toggle_modal(n1, patient_id, appt_date, timeslot_selected):
         c.execute(sql, data_tuple)
         conn.commit()
 
-        return home.layout
+        return layout
 
 
 @app.callback(
