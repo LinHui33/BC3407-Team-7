@@ -144,7 +144,6 @@ def render_navbar(n1):
         return {'float': 'right'}, False, {'display': 'none'}, None, {'display': 'none'}, True, {"display": "block"}, {
             "display": "block"}, {"display": "block"}
 
-
 # ---------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
     app.run_server(debug=False)
