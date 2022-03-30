@@ -76,7 +76,7 @@ def toggle_modal(n1, n2, is_open):
         return not is_open
     return is_open
 
-
+empty_table = pd.DataFrame(columns=[''])
 layout = html.Div([
     html.H5("Appointments Screener"),
     html.Div("Only the latest 30 appointments registered are shown by default. Max allowable records to be returned per query is 500.", style={'margin-bottom': '1rem'}),
@@ -147,6 +147,9 @@ layout = html.Div([
             fixed_rows={'headers': True},
             filter_action='native',
             sort_action='native',
+            row_selectable='single', #requires empty data for intialization
+            data = empty_table.to_dict('records'),
+            columns = [{"name": i, "id": i} for i in empty_table.columns],
         )
     ], fullscreen=False, color='#0D6EFD')
 
@@ -287,8 +290,9 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
     if len(appointments.index) > 0:
         data = appointments.to_dict('records')
         columns = [{"name": i, "id": i} for i in appointments.columns]
+
     else:
-        data = None
-        columns = None
+        data = empty_table.to_dict('records')
+        columns =  [{"name": i, "id": i} for i in empty_table.columns]
 
     return data, columns
