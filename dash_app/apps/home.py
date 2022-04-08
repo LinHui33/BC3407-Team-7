@@ -76,7 +76,8 @@ create_patient = html.Div(
                                  ], className="mb-3"),
                                  dbc.Row([
                                      dbc.Label('Age', width=5),
-                                     dbc.Col(dbc.Input(type='number', id='create-patient-age', min=0, max=150),
+                                     dbc.Col(dbc.Input(type='number', id='create-patient-age', min=0, max=250, value=30,
+                                                       step=1),
                                              width=5),
                                  ], className="mb-3"),
                                  dbc.Row([
@@ -84,6 +85,8 @@ create_patient = html.Div(
                                      dbc.Col(dcc.Dropdown(options=[{'label': y, 'value': x} for x, y in
                                                                    zip([0, 1], ['Male', 'Female'])
                                                                    ],
+                                                          value=1,
+                                                          clearable=False,
                                                           id='create-patient-gender', ), width=5),
                                  ], className="mb-3"),
                              ] + [dbc.Row([
@@ -91,6 +94,8 @@ create_patient = html.Div(
                         dbc.Col(dcc.Dropdown(options=[{'label': y, 'value': x} for x, y in
                                                       zip([0, 1], ['No', 'Yes'])
                                                       ],
+                                             value=0,
+                                             clearable=False,
                                              id=f'create-patient-{x}', ), width=5),
                     ], className="mb-3") for x in
                                  ['Diabetes', 'Drinks', 'HyperTension', 'Handicap', 'Smoker', 'Scholarship',
@@ -123,6 +128,11 @@ create_patient = html.Div(
 
 layout = html.Div([
     html.H3(["Welcome to the data portal"], id='home-header'),
+    dbc.Row([
+        dbc.Spinner(dbc.Alert(color='success',
+                              style={'margin': "1rem"}, id='insight-home')
+                              , fullscreen=False, color='#0D6EFD'),
+    ]),
     dbc.Spinner([
         html.Div(' ', id='home-header-status', className='mb-3'),
         create_appointment, create_patient,
@@ -134,25 +144,17 @@ layout = html.Div([
         ], style={"text-align": 'right'}),
         dcc.Graph(id='home-gantt-schedule'),
     ], id='home-loading', fullscreen=False, color='#0D6EFD'),
-    # dcc.Loading([
+
     dbc.Row([
         dbc.Col(html.H5('Click on the schedule above to filter appointments'), ),
         dbc.Col(dbc.Button('Reset Filtering', id='reset-home-appointment-information',
                            style={'margin': '0.5rem', "float": "right"}), ),
-        # ]),
     ]),
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
-    dbc.Row([
-        dbc.Col(html.H5('Appointment Insights'), style={'margin':'1rem'}),
-    ]),
-    dbc.Spinner(dbc.Alert("SAMPLE Insight: There are 0 appointments booked for the next 2 weeks."
-                          "Expected free capacity is 100%."
-                          "Expected no-show rate is X%."
-                          "It is highly recommended that you book more appointments soon.", color='success',
-                          style={'margin': "1rem"}), fullscreen=False, color='#0D6EFD'),
 
     # dcc.Interval(n_intervals=1000,id='refresh-home')
 ], id='home-page')
+
 
 def get_appointments_patients_merged(date_now, conn):
     if date_now == 'all':
@@ -177,6 +179,7 @@ def get_appointments_patients_merged(date_now, conn):
               Output('appointment-date-selection', 'initial_visible_month'),
               Output('appointment-date-selection', 'date'),
               Output('home-gantt-schedule', 'figure'),
+              Output('insight-home', 'children'),
               Input('home-loading', 'children'),
               )
 def render_home(dummy):
@@ -203,9 +206,9 @@ def render_home(dummy):
                           x_start='Start',
                           x_end='End',
                           y='appointment_id',
-                          color="Show Up",
+                          color="Show_Up",
                           # hover_name="",
-                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show Up'],
+                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up'],
                           )
         fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                           paper_bgcolor='#FFFFFF',
@@ -227,7 +230,35 @@ def render_home(dummy):
         fig.update_yaxes(fixedrange=True)
         fig.update_xaxes(fixedrange=True)
 
-    return message, min_date_allowed, initial_visible_month, date, fig
+    # TODO: OBTAIN THESE NUMBERS
+    num_appts_2weeks = 0
+    exp_filled_capacity = 0
+    exp_no_show = 0
+
+    insight_msg = [html.P(f"There are {num_appts_2weeks} appointments booked for the next 2 weeks. "
+                          f"Expected free capacity is {100-exp_filled_capacity}%. "
+                          f"Expected no-show rate is {exp_no_show}%.")]
+
+    if exp_filled_capacity < 20:
+        insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
+    elif exp_filled_capacity < 50:
+        insight_msg += [html.P(f"It is recommended for more appointments to be booked.")]
+    elif exp_filled_capacity < 90:
+        insight_msg += [html.P(f"There are still some empty appointment slots for the next two weeks")]
+    elif exp_filled_capacity < 100:
+        insight_msg += [html.P(f"Careful, we are nearing full capacity for the next two weeks.")]
+    elif exp_filled_capacity >= 100:
+        insight_msg += [
+            html.P(f"We are currently overbooked, kindly only proceed with booking appointments for >2 weeks later.")]
+
+    insights = html.Div([
+        "There are 0 appointments booked for the next 2 weeks. "
+        "Expected free capacity is 100%. "
+        "Expected no-show rate is X%. "
+        "It is highly recommended that you book more appointments soon."
+    ])
+
+    return message, min_date_allowed, initial_visible_month, date, fig, insight_msg
 
 
 @app.callback(Output('home-appointment-information', 'children'),
@@ -244,11 +275,27 @@ def render_table(clickData, n1):
         clicked_id = clickData['points'][0]['y']
         appointments_today = appointments_today[appointments_today['appointment_id'] == clicked_id]
 
+    req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Show_Up', 'Age', 'Gender',
+                   'Scholarship']
+    appointments_today = appointments_today[req_columns]
+
+    appointments_today = appointments_today.rename({
+        'appointment_id': 'Appointment ID',
+        'patient_id': 'Patient ID',
+        'Appointment': 'Appt Date & Time',
+        'Show_Up': 'Show Up',
+        'Sms_Reminder': 'SMS Reminder Sent?',
+    }, axis=1)
+    for each in ['SMS Reminder Sent?', 'Show Up', 'Scholarship']:
+        appointments_today[each] = appointments_today[each].apply(lambda x: 'Yes' if x == 1 else "No")
+
+    appointments_today['Gender'] = appointments_today['Gender'].apply(lambda x: 'Female' if x == 0 else "Male")
+
     table = dash_table.DataTable(
         data=appointments_today.to_dict('records'),
         columns=[{"name": i, "id": i} for i in appointments_today.columns],
         style_table={'overflowX': 'auto'},
-        style_cell={'font-family': 'Arial'},
+        style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
         sort_action='native',
     )
     return table
@@ -303,9 +350,9 @@ def toggle_modal(n1, patient_id, appt_date, timeslot_selected):
         # TODO: Add in predictions? Any use for admin to know if patient will show up or not before submitting?
 
         cols = (
-            "appointment_id", "patient_id", "Register Time", "Appointment", "Day", "Sms_Reminder", "Waiting Time",
-            "Show Up",
-            "Appointment Month", "Appointment Week Number")
+            "appointment_id", "patient_id", "Register_Time", "Appointment", "Day", "Sms_Reminder", "Waiting_Time",
+            "Show_Up",
+            "Appointment_Month", "Appointment_Week_Number")
         data_tuple = (
             appointment_id, patient_id, registered_date, appointment_date, day, sms_reminder, waiting_time, show_up,
             appointment_month, appointment_week_number)
@@ -314,6 +361,17 @@ def toggle_modal(n1, patient_id, appt_date, timeslot_selected):
         c.execute(sql, data_tuple)
         conn.commit()
 
+        first_appointment = pd.read_sql(f'SELECT first_appt FROM patients WHERE patient_id = {patient_id}'
+                                        f';', conn).iat[0, 0]
+        if first_appointment == '':
+            data = (appointment_date, patient_id)
+            sql_to_edit = f"""
+UPDATE patients
+SET first_appt = ?
+WHERE patient_id = ? ;
+"""
+            c.execute(sql_to_edit, data)
+            conn.commit()
         return layout
 
 
@@ -333,12 +391,13 @@ def add_patient(n1, age, gender, diabetes, drinks, hypertension, handicap, smoke
     patients = pd.read_sql('SELECT * FROM patients;', conn)
     patient_options = [{'label': x, 'value': x} for x in patients['patient_id'].unique()]
     patient_id = int(max(patients['patient_id'].unique()) + 1)
-    data_tuple = (patient_id, age, gender, diabetes, drinks, hypertension, handicap, smoker, scholarship, tuberculosis)
+    data_tuple = (
+        patient_id, '', age, gender, diabetes, drinks, hypertension, handicap, smoker, scholarship, tuberculosis)
     if n1:
         try:
             if None not in data_tuple:
                 # date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
-                sql = f'INSERT INTO patients VALUES (?,?,?,?,?,?,?,?,?,?)'
+                sql = f'INSERT INTO patients VALUES (?,?,?,?,?,?,?,?,?,?,?)'
                 c.execute(sql, data_tuple)
                 conn.commit()
                 return dbc.Alert(
@@ -346,7 +405,8 @@ def add_patient(n1, age, gender, diabetes, drinks, hypertension, handicap, smoke
                            {'label': x, 'value': x} for x in [patient_id]]
             else:
                 return dbc.Alert(f"Error. Please try again.", color='warning'), dash.no_update, dash.no_update
-        except:
+        except Exception as e:
+            print(e)
             return dbc.Alert(f"Error. Please try again.", color='warning'), dash.no_update, dash.no_update
     else:
         return dash.no_update, patient_id, patient_options

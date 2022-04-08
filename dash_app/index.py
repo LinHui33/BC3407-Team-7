@@ -4,7 +4,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app, server
 from flask_login import current_user, logout_user
-from apps import login, no_such_page, home, patient_screener, appointments, dashboard, manage_users, ml
+from apps import login, no_such_page, home, patient_screener, appointments, dashboard, ml
 import sqlite3
 
 server = server  # required for deployment
@@ -20,8 +20,6 @@ navbar = html.Div([
                               dbc.DropdownMenuItem('Appointment Screener', href='/appointments'),
                               dbc.DropdownMenuItem('ML Model Performance', href='/ml', id='navbar-menu-ml',
                                                    style={"display": "none"}),
-                              dbc.DropdownMenuItem('Manage Users', href='/manage-users', id='navbar-menu-manage-users',
-                                                   style={"display": "none"}),
                               ], className='navbar-btns', label='More', style={'display': 'none'},
                              id='navbar-dropdown-menu'),
         ]),
@@ -29,16 +27,12 @@ navbar = html.Div([
     ),
 ], className='navbar-custom')
 
-footer = html.Div([
-    dbc.Alert('Footer')
-], style={"margin-top": "3rem"})
 
 app.layout = html.Div([
     dcc.Location(id="url"),
     navbar,
     html.Div(id='page-output', style={'margin': '1rem'}),
     html.Div(id='login-page-status', style={'margin': 'auto', 'margin-top': '1rem'}),
-    footer,
 ])
 
 
@@ -82,17 +76,6 @@ def render_content(url, login_trigger):
                 return login.layout
         except:
             return login.layout
-    elif url in ['/manage-users']:
-        try:
-            if (current_user.is_authenticated):
-                if (current_user.get_access_level() == 0):
-                    return manage_users.layout
-                else:
-                    return no_such_page.layout
-            else:
-                return login.layout
-        except:
-            return login.layout
     elif url in ['/ml']:
         try:
             if (current_user.is_authenticated):
@@ -127,7 +110,6 @@ def render_content(url, login_trigger):
     Output('logout-user', 'style'),
     Output('logout-user', 'disabled'),
     Output('navbar-menu-ml', 'style'),
-    Output('navbar-menu-manage-users', 'style'),
     Output('navbar-menu-dashboard', 'style'),
     Input('page-output', 'children')
 )
@@ -136,13 +118,12 @@ def render_navbar(n1):
         new_btn_label = html.Div("Log out " + current_user.username)
         if current_user.get_access_level() == 0:
             return {'display': 'none'}, True, {'float': 'right'}, new_btn_label, {'float': 'right'}, False, {
-                "display": "block"}, {"display": "block"}, {'display': 'block'}
+                "display": "block"}, {'display': 'block'}
         else:
             return {'display': 'none'}, True, {'float': 'right'}, new_btn_label, {'float': 'right'}, False, {
-                "display": "none"}, {"display": "none"}, {'display': 'none'}
+                "display": "none"}, {'display': 'none'}
     else:
-        return {'float': 'right'}, False, {'display': 'none'}, None, {'display': 'none'}, True, {"display": "block"}, {
-            "display": "block"}, {"display": "block"}
+        return {'float': 'right'}, False, {'display': 'none'}, None, {'display': 'none'}, True, {"display": "block"}, {"display": "block"}
 
 # ---------------------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':

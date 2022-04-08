@@ -25,7 +25,7 @@ edit_appointment_modal = html.Div(
                     dbc.Form([
                         dbc.Row([
                             dbc.Label('Select Appointment ID', width=5),
-                            dbc.Col(dcc.Dropdown(id='edit-appointment-appointment-selection', ), width=5),
+                            dbc.Col(dbc.Input(id='edit-appointment-appointment-selection', disabled=True), width=5),
                         ], className="mb-3"),
                         dbc.Row([
                             dbc.Label('Edit Appointment Date', width=5),
@@ -40,9 +40,17 @@ edit_appointment_modal = html.Div(
                                                           ],
                                                  id='edit-appointment-timeslot-selection'), width=5),
                         ], className="mb-3"),
+                        dbc.Row([
+                            dbc.Label('Show Up?', width=5),
+                            dbc.Col(dcc.Dropdown(options=[{'label': 'Yes', 'value': 1},
+                                                          {'label': 'No', 'value': 0}
+                                                          ],
+                                                 id='edit-appointment-show-up-selection'), width=5),
+                        ], className="mb-3"),
 
                     ])
                 ]),
+                html.Div(id='edit-appointment-status', style={"display": "block"}),
                 dbc.ModalFooter([
                     dbc.Row([
                         dbc.Col([
@@ -76,10 +84,13 @@ def toggle_modal(n1, n2, is_open):
         return not is_open
     return is_open
 
+
 empty_table = pd.DataFrame(columns=[''])
 layout = html.Div([
     html.H5("Appointments Screener"),
-    html.Div("Only the latest 30 appointments registered are shown by default. Max allowable records to be returned per query is 500.", style={'margin-bottom': '1rem'}),
+    html.Div(
+        "Only the latest 30 appointments registered are shown by default. Max allowable records to be returned per query is 500.",
+        style={'margin-bottom': '1rem'}),
     html.Div(
         dbc.Row([
             dbc.Row([
@@ -141,15 +152,15 @@ layout = html.Div([
     dbc.Spinner([
         dash_table.DataTable(
             style_table={'overflowX': 'auto', 'height': 300, 'zIndex': '0'},
-            style_cell={'font-family': 'Arial', 'minWidth': 95, 'width': 95, 'maxWidth': 95},
+            style_cell={'font-family': 'Arial', 'minWidth': 95, 'width': 95, 'maxWidth': 95, 'textAlign':'center'},
             id='appointments-data-table',
             virtualization=True,
             fixed_rows={'headers': True},
             filter_action='native',
             sort_action='native',
-            row_selectable='single', #requires empty data for intialization
-            data = empty_table.to_dict('records'),
-            columns = [{"name": i, "id": i} for i in empty_table.columns],
+            row_selectable='single',  # requires empty data for intialization
+            data=empty_table.to_dict('records'),
+            columns=[{"name": i, "id": i} for i in empty_table.columns],
         )
     ], fullscreen=False, color='#0D6EFD')
 
@@ -192,11 +203,11 @@ def render_options(page_load):
     conn = sqlite3.connect('assets/hospital_database.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT MAX("Register Time") FROM appointments;""")
+        f"""SELECT MAX("Register_Time") FROM appointments;""")
     max_register_time = cursor.fetchone()[0]
 
     cursor.execute(
-        f"""SELECT MIN("Register Time") FROM appointments;""")
+        f"""SELECT MIN("Register_Time") FROM appointments;""")
     min_register_time = cursor.fetchone()[0]
 
     return max_register_time, min_register_time
@@ -221,17 +232,59 @@ def render_options(page_load):
 
 @app.callback(Output('appointments-data-table', 'data'),
               Output('appointments-data-table', 'columns'),
+              Output('edit-appointment-status', 'children'),
+
               Input("update-appointments-screener", 'n_clicks'),
+              Input("edit-appointment-submit",'n_clicks'),
+
               State("update-appointments-appointment-id", 'value'),
               State("update-appointments-patient-id", 'value'),
               State("update-appointments-appointment-date", 'start_date'),
               State("update-appointments-appointment-date", 'end_date'),
               State("update-appointments-registered-date", 'start_date'),
               State("update-appointments-registered-date", 'end_date'),
+
+              State('edit-appointment-appointment-selection', 'value'),
+              State('edit-appointment-date-selection', 'date'),
+              State('edit-appointment-timeslot-selection', 'value'),
+              State('edit-appointment-show-up-selection', 'value'),
               )
-def render_table(n1, appointment_id, patient_id, appointment_date_start, appointment_date_end, registered_date_start,
-                 registered_date_end):
+def render_table(n1, n2,
+                 appointment_id, patient_id, appointment_date_start, appointment_date_end, registered_date_start,
+                 registered_date_end,
+                 appointment_id_selection, appointment_date_selection, appointment_date_timeslot, show_up_selection):
     conn = sqlite3.connect('assets/hospital_database.db')
+    c = conn.cursor()
+
+    if n2:
+        try:
+            from dateutil.relativedelta import relativedelta
+            try:
+                appointment_changed = datetime.strptime(appointment_date_selection, '%Y-%m-%dT%H:%M:%S').date()
+            except:
+                appointment_changed = datetime.strptime(appointment_date_selection, '%Y-%m-%d').date()
+
+            appointment_changed_hours, appointment_changed_minutes = appointment_date_timeslot.split(":")
+            appointment_changed = appointment_changed  + relativedelta(hours=int(appointment_changed_hours), minutes=int(appointment_changed_minutes))
+            appointment_changed = appointment_changed.replace(tzinfo=timezone.utc).isoformat().replace("T", " ")
+            new_data = (appointment_changed,show_up_selection,appointment_id_selection)
+
+            sql_to_edit = f"""
+UPDATE appointments
+SET Appointment = ?,
+    Show_Up = ?
+WHERE appointment_id = ?;
+"""
+            c.execute(sql_to_edit,new_data)
+            conn.commit()
+            update_message = dbc.Alert('Updated successfully!', color='success')
+
+        except Exception as e:
+            print(e)
+            update_message = dbc.Alert('Error updating. Please try again!', color='warning')
+    else:
+        update_message = None
+
     if n1:
         basic_sql = f'SELECT * FROM appointments WHERE TRUE'
 
@@ -244,7 +297,7 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
 
         if condition1:
             appointment_id_edited = tuple(appointment_id) if len(appointment_id) > 1 else str(
-                tuple(appointment_id)).replace(',','')
+                tuple(appointment_id)).replace(',', '')
             basic_sql += f' AND appointment_id IN {tuple(appointment_id_edited)}'
 
         if condition2:
@@ -288,11 +341,48 @@ def render_table(n1, appointment_id, patient_id, appointment_date_start, appoint
         data = None
 
     if len(appointments.index) > 0:
+        req_cols = ['appointment_id', 'patient_id', 'Register_Time', 'Appointment', 'Show_Up']
+        appointments = appointments[req_cols]
+
+        appointments = appointments.rename({'appointment_id': 'Appt ID',
+                        'patient_id': 'Patient ID',
+                        'Show_Up': 'Show Up',
+                        'Appointment': 'Appointment Date & Time',
+                        'Register_Time': 'Registered Date & Time',
+                        }, axis=1)
+
+        appointments['Registered Date & Time'] = pd.to_datetime(appointments['Registered Date & Time'],infer_datetime_format=True).dt.strftime('%Y-%m-%d %H:%M')
+        appointments['Appointment Date & Time'] = pd.to_datetime(appointments['Appointment Date & Time'],infer_datetime_format=True).dt.strftime('%Y-%m-%d %H:%M')
+        appointments['Show Up'] = appointments['Show Up'].apply(lambda x: 'Yes' if x=='1' else 'No')
+
         data = appointments.to_dict('records')
         columns = [{"name": i, "id": i} for i in appointments.columns]
 
     else:
         data = empty_table.to_dict('records')
-        columns =  [{"name": i, "id": i} for i in empty_table.columns]
+        columns = [{"name": i, "id": i} for i in empty_table.columns]
 
-    return data, columns
+    return data, columns, update_message
+
+
+@app.callback(Output('edit-appointment-appointment-selection', 'value'),
+              Output(f'edit-appointment-date-selection', 'date'),
+              Output(f'edit-appointment-timeslot-selection', 'value'),
+              Output(f'edit-appointment-show-up-selection', 'value'),
+              Input('edit-appointment-open', 'n_clicks'),
+              State('appointments-data-table', 'selected_rows'),
+              State('appointments-data-table', 'data'),
+              )
+def render_selected_patient(n1, row, data):
+    if n1:
+        appt_id, patient_id, register_time, appointment_date, show_up = pd.DataFrame(data).iloc[row[0], :].values.tolist()
+        if show_up=="Yes":
+            show_up = '1'
+        else:
+            show_up = '0'
+        date = datetime.strptime(appointment_date,'%Y-%m-%d %H:%M')
+        timeslot = datetime.strptime(appointment_date,'%Y-%m-%d %H:%M').strftime('%H:%M')
+
+        return appt_id, date, timeslot, show_up
+    else:
+        return dash.no_update

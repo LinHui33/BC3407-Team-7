@@ -20,13 +20,15 @@ edit_patients_modal = html.Div(
                                      dbc.Col(dbc.Input(id='edit-patients-patient-selection', disabled=True), width=5),
                                  ], className="mb-3"),
                              ] + [dbc.Row([dbc.Label(x, width=5),
-                                           dbc.Col(dbc.Input(id=f'patient-{x}-selected'), width=5)])
+                                           dbc.Col(dbc.Input(id=f'patient-{x}-selected', type='number', min=0, max=250,
+                                                             step=1), width=5)])
                                   for x in ['Age']
                                   ] + [dbc.Row([dbc.Label(x, width=5),
                                                 dbc.Col(dcc.Dropdown(clearable=False,
                                                                      id=f'patient-{x}-selected',
                                                                      options=[{'label': x, 'value': y} for x, y in
-                                                                              zip(['Male', 'Female'], [1, 0])]), width=5)])
+                                                                              zip(['Male', 'Female'], [1, 0])]),
+                                                        width=5)])
                                        for x in ['Gender']
                                        ] + [dbc.Row([dbc.Label(x, width=5),
                                                      dbc.Col(dcc.Dropdown(clearable=False,
@@ -74,8 +76,15 @@ edit_patients_modal = html.Div(
               )
 def render_selected_patient(n1, row, data):
     if n1:
-        existing_data = pd.DataFrame(data).drop(['first_appt'], axis=1)
-        return tuple(existing_data.iloc[row[0], :].astype(int).values.tolist())
+        existing_data = pd.DataFrame(data).drop(['First Appointment'], axis=1)
+        data = existing_data.iloc[row[0], :].values.tolist()
+        if data[2] == 'Male':
+            gender = '1'
+        else:
+            gender = '0'
+        traits = ['1' if x == 'Yes' else '0' for x in data[3:]]
+        results = data[0:2] + [gender] + traits
+        return tuple(results)
     else:
         return dash.no_update
 
@@ -138,7 +147,7 @@ layout = html.Div([
     dbc.Spinner([
         dash_table.DataTable(
             style_table={'overflowX': 'auto', 'height': 300, 'zIndex': '0'},
-            style_cell={'font-family': 'Arial', 'minWidth': 95, 'width': 95, 'maxWidth': 95},
+            style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
             id='patients-data-table',
             virtualization=True,
             fixed_rows={'headers': True},
@@ -213,7 +222,7 @@ def render_table(n1, n2, patient_id, registered_date_start, registered_date_end,
             sql_to_edit = f"""
     UPDATE patients
     SET 
-    Age = {age_edit},
+    Age = {int(age_edit)},
     Gender = {gender_edit},
     Diabetes = {diabetes_edit},
     Drinks = {drinks_edit},
@@ -227,7 +236,7 @@ def render_table(n1, n2, patient_id, registered_date_start, registered_date_end,
     """
             c.execute(sql_to_edit)
             conn.commit()
-            update_message = dbc.Alert('Updated successfully!',color='success')
+            update_message = dbc.Alert('Updated successfully!', color='success')
 
         except:
             update_message = dbc.Alert('Error updating. Please try again!', color='warning')
@@ -255,9 +264,9 @@ def render_table(n1, n2, patient_id, registered_date_start, registered_date_end,
                 'Asia/Singapore')
             basic_sql += f' AND "first_appt" <= "{registered_date_end}"'
 
-        basic_sql += ' LIMIT 500;'
+        basic_sql += ' ORDER BY patient_id DESC LIMIT 500;'
     else:
-        basic_sql = f'SELECT * FROM patients ORDER BY first_appt DESC LIMIT 30;'
+        basic_sql = f'SELECT * FROM patients ORDER BY patient_id DESC LIMIT 30;'
 
     print(basic_sql)
 
@@ -271,8 +280,23 @@ def render_table(n1, n2, patient_id, registered_date_start, registered_date_end,
         data = None
 
     if len(patients.index) > 0:
+
+        patients = patients.rename(
+            {'first_appt': 'First Appointment',
+             'patient_id': 'Patient ID',
+             }, axis=1)
+
+        patients['First Appointment'] = pd.to_datetime(patients['First Appointment'],
+                                                       format='%Y-%m-%d %H:%M:%S%z', errors='coerce').dt.strftime(
+            '%Y-%m-%d %H:%M')
+
+        patients['Gender'] = patients['Gender'].replace({"0": "Female", "1": "Male"})
+        for each in ['Diabetes', 'Drinks', 'HyperTension', 'Handicap', 'Smoker', 'Scholarship', 'Tuberculosis']:
+            patients[each] = patients[each].replace({"0": "No", "1": "Yes"})
+
         data = patients.to_dict('records')
         columns = [{"name": i, "id": i} for i in patients.columns]
+
 
     else:
         data = empty_table.to_dict('records')
