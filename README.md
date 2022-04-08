@@ -7,33 +7,67 @@
     - usernames/passwords: admin/admin1234 , nurse/nurse1234
 
 # Current Progress:
-
 1. Data was cleaned and stored in an sqlite database. In total, 3 tables were created from the original dataset
     1. Appointments: Contains appointment details. Each row corresponds to an appointment, and related to a user.
-        1. TODO: Incorporate past ML performance as a separate column
     2. Users: Contains user unique characteristics. Each row corresponds to a user.
     3. Login: Contains username, hashed password & access_level
+
+
 2. User Access
     1. Login/Logout functions were implemented
-    2. TODO: Finalize what the nurse/admin can/cannot do
-       1. Nurse: Can view all pages except for ML model & Manage Users, Add, Edit & Remove Appointments & Patients
-       2. Admin: Can do and see everything, including performance of ML Model & Manage Users
-3. Home Page
-    1. Interactive gantt chart & data table for current date's appointments
-        1. filtering of data table while clicking on chart
-        2. TODO: Expected no-show rates for current date
-        3. TODO: ML Insights (e.g. Looking at the next 2 weeks, expected no-show is 50%. Advised to overbook
-           appointments to maximize capacity.)
-    2. Create Appointments: Popup modal to create new appointment
-    3. Create Patient: Popup modal to create new patient
-4. Appointment Screener with filters
-    1. TODO
-5. Patient Screener with filters
-    1. TODO
-6. Dashboard with Past ML Performance
-    1. TODO
+    2. Nurse: Can view all pages except for Dashboard, ML model. Can add & edit Appointments & Patients
+    3. Admin/Mgmt: Can do and see everything, including Dashboard and ML model.
 
-# Known Limitations:
+
+3. Home Page
+    1. **TODO: Insight**
+       1. **Expected no-show rates for current date**
+       2. **ML Insights (e.g. Looking at the next 2 weeks, expected no-show is 50%. Advised to overbook
+           appointments to maximize capacity.)**
+          1. **Figure out how to use the Cart Model File**
+    2. Interactive gantt chart & data table for current date's appointments
+        1. Filtering of data table while clicking on chart
+    3. Create Appointments: Popup modal to create new appointment
+    4. Create Patient: Popup modal to create new patient
+
+
+4. Appointment Screener with filters
+    1. View + Edit Appointments
+5. Patient Screener with filters
+    1. View + Edit Patients
+
+
+6. Dashboard
+   1. Number of Appointments
+      1. Count of Appointments over time
+   2. Show Up Rates
+      1. Show Up rates across various patient characteristics and appointment detail
+   3. Patients
+      1. Number of New Patients
+      2. **TODO: Patient Characteristics**
+   4. Historical Hospital Capacity
+      1. Capacity used by month
+   5. **TODO: Dashboard with Past ML Performance**
+      1. **Predicted vs Real Show Up rates**
+      2. **Model Metrics**
+
+
+7. **TODO: Report User Guide (PDF)**
+   1. **2-3min Individual Recording**
+      1. Reflect on contribution, what you did + learnt from the project
+      2. Individual Youtube links on Pg 1 of report
+   2. **User Manual**
+      1. **Objective of Project and How it addresses the issue**
+      2. **Functionalities of the Prototype**
+         1. Features
+         2. How to interpret and use graphs 
+      3. **User Manual with Print Screens**
+         1. Installation & How to Run
+         2. User journey of Nurse Role 
+         3. User journey of Admin Role
+
+    
+#### Known Limitations (not v. important, can include in report if want):
 
 1. Application is hosted online on Heroku Any changes made to data files deployed together with the application will not
    persist - e.g. updates to sqlite .db files while deployed online will only remain temporarily for ~30mins
