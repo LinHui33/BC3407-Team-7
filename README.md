@@ -20,11 +20,10 @@
 
 
 3. Home Page
-    1. **TODO: Insight**
-       1. **Expected no-show rates for current date**
-       2. **ML Insights (e.g. Looking at the next 2 weeks, expected no-show is 50%. Advised to overbook
+    1. Insight
+       1. Expected no-show rates for current date
+       2. **TODO: ML Insights (e.g. Looking at the next 2 weeks, expected no-show is 50%. Advised to overbook
            appointments to maximize capacity.)**
-          1. **Figure out how to use the Cart Model File**
     2. Interactive gantt chart & data table for current date's appointments
         1. Filtering of data table while clicking on chart
     3. Create Appointments: Popup modal to create new appointment

@@ -10,6 +10,12 @@ from app import app
 import sqlite3
 import numpy as np
 import pytz
+from methods.machine_learning import predict_no_show
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', 20)
+pd.set_option('display.width', 300)
+pd.set_option('max_colwidth', 20)
 
 # https://stackoverflow.com/questions/49456158/integer-in-python-pandas-becomes-blob-binary-in-sqlite
 sqlite3.register_adapter(np.int64, lambda val: int(val))
@@ -128,13 +134,14 @@ create_patient = html.Div(
 
 layout = html.Div([
     html.H3(["Welcome to the data portal"], id='home-header'),
+    dbc.Row([html.Div(['To view all appointments, please go to the ',
+                       html.A("Appointments Screener", href='/appointments', target='_blank'), '.'])]),
     dbc.Row([
         dbc.Spinner(dbc.Alert(color='success',
                               style={'margin': "1rem"}, id='insight-home')
                               , fullscreen=False, color='#0D6EFD'),
     ]),
     dbc.Spinner([
-        html.Div(' ', id='home-header-status', className='mb-3'),
         create_appointment, create_patient,
         html.Div([
             dbc.Button('Create Appointment', id='create-appointment-open',
@@ -156,15 +163,8 @@ layout = html.Div([
 ], id='home-page')
 
 
-def get_appointments_patients_merged(date_now, conn):
-    if date_now == 'all':
-        appointments = pd.read_sql('SELECT * FROM appointments left join patients using (patient_id);',
-                                   conn,
-                                   )
-        return appointments
-    else:
+def get_appointments_patients_today(date_now, conn):
         date = f"'{date_now.replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
-
         appointments = pd.read_sql(
             f"SELECT * FROM appointments left join patients using (patient_id) where Date(Appointment) = date({date});",
             conn,
@@ -174,8 +174,7 @@ def get_appointments_patients_merged(date_now, conn):
         return appointments
 
 
-@app.callback(Output('home-header-status', 'children'),
-              Output('appointment-date-selection', 'min_date_allowed'),
+@app.callback( Output('appointment-date-selection', 'min_date_allowed'),
               Output('appointment-date-selection', 'initial_visible_month'),
               Output('appointment-date-selection', 'date'),
               Output('home-gantt-schedule', 'figure'),
@@ -185,12 +184,8 @@ def get_appointments_patients_merged(date_now, conn):
 def render_home(dummy):
     date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
-    appointments_today = get_appointments_patients_merged(date_now, conn)
-
-    appt_count_today = len(appointments_today)
-    message = f"There {'is' if appt_count_today == 1 else 'are'} {appt_count_today if appt_count_today > 0 else 'no'} appointment{'' if appt_count_today == 1 else 's'} for today. "
-    message = html.Div([message, 'To view all appointments, please go to the ',
-                        html.A("Appointments Screener", href='/appointments', target='_blank'), '.'])
+    
+    appointments_today = get_appointments_patients_today(date_now, conn)
 
     min_date_allowed = datetime(date_now.year, date_now.month, date_now.day)
     initial_visible_month = date_now
@@ -199,16 +194,17 @@ def render_home(dummy):
     appointments_today['Start'] = appointments_today['Appointment']
     appointments_today['End'] = pd.to_datetime(appointments_today['Start']) + timedelta(minutes=30)
 
-    # TODO: Add in predictions to appointments_today
+    num_appts = len(appointments_today.index)
 
-    if appt_count_today > 0:
+    if num_appts > 0:
+        appointments_today = predict_no_show(appointments_today)
         fig = px.timeline(appointments_today,
                           x_start='Start',
                           x_end='End',
                           y='appointment_id',
-                          color="Show_Up",
+                          color="Predicted",
                           # hover_name="",
-                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up'],
+                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up','Predicted'],
                           )
         fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                           paper_bgcolor='#FFFFFF',
@@ -218,6 +214,32 @@ def render_home(dummy):
         fig.add_vrect(x0=date_now, x1=date_now,
                       annotation_text="  " + date_now.strftime("%H:%M"), annotation_position="outside top right",
                       fillcolor="green", opacity=1, line_width=1)
+
+        exp_filled_capacity = round(len(appointments_today[appointments_today['Predicted'] == 'Yes'].index) / 27455 * 100,
+                                    2)
+        free_capacity = 27455 - len(appointments_today[appointments_today['Predicted'] == 'Yes'].index)
+        exp_no_show = len(appointments_today[appointments_today['Predicted'] == 'No'].index)
+        exp_no_show_rate = round(exp_no_show/num_appts,2)
+
+        insight_msg = [html.P(
+            f"There {'is' if num_appts == 1 else 'are'} {num_appts if num_appts > 0 else 'no'} appointment{'' if num_appts == 1 else 's'} for today. "
+            f"Expected free capacity is {100 - exp_filled_capacity}% ({free_capacity} slots). "
+            f"Expected no-show rate is {exp_no_show_rate}% ({exp_no_show} appointments)."),
+                       ]
+
+        if exp_filled_capacity < 20:
+            insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
+        elif exp_filled_capacity < 50:
+            insight_msg += [html.P(f"It is recommended for more appointments to be booked.")]
+        elif exp_filled_capacity < 90:
+            insight_msg += [html.P(f"There are still some empty appointment slots for the next two weeks")]
+        elif exp_filled_capacity < 100:
+            insight_msg += [html.P(f"Careful, we are nearing full capacity for the next two weeks.")]
+        elif exp_filled_capacity >= 100:
+            insight_msg += [
+                html.P(
+                    f"We are currently overbooked, kindly only proceed with booking appointments for >2 weeks later.")]
+
     else:
         fig = go.Figure()
         fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
@@ -229,36 +251,11 @@ def render_home(dummy):
                            showarrow=False)
         fig.update_yaxes(fixedrange=True)
         fig.update_xaxes(fixedrange=True)
+        insight_msg = [html.P(
+            f"There are no appointments for today."),
+                       ]
 
-    # TODO: OBTAIN THESE NUMBERS
-    num_appts_2weeks = 0
-    exp_filled_capacity = 0
-    exp_no_show = 0
-
-    insight_msg = [html.P(f"There are {num_appts_2weeks} appointments booked for the next 2 weeks. "
-                          f"Expected free capacity is {100-exp_filled_capacity}%. "
-                          f"Expected no-show rate is {exp_no_show}%.")]
-
-    if exp_filled_capacity < 20:
-        insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
-    elif exp_filled_capacity < 50:
-        insight_msg += [html.P(f"It is recommended for more appointments to be booked.")]
-    elif exp_filled_capacity < 90:
-        insight_msg += [html.P(f"There are still some empty appointment slots for the next two weeks")]
-    elif exp_filled_capacity < 100:
-        insight_msg += [html.P(f"Careful, we are nearing full capacity for the next two weeks.")]
-    elif exp_filled_capacity >= 100:
-        insight_msg += [
-            html.P(f"We are currently overbooked, kindly only proceed with booking appointments for >2 weeks later.")]
-
-    insights = html.Div([
-        "There are 0 appointments booked for the next 2 weeks. "
-        "Expected free capacity is 100%. "
-        "Expected no-show rate is X%. "
-        "It is highly recommended that you book more appointments soon."
-    ])
-
-    return message, min_date_allowed, initial_visible_month, date, fig, insight_msg
+    return min_date_allowed, initial_visible_month, date, fig, insight_msg
 
 
 @app.callback(Output('home-appointment-information', 'children'),
@@ -269,35 +266,47 @@ def render_table(clickData, n1):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
-    appointments_today = get_appointments_patients_merged(date_now, conn)
+    appointments_today = get_appointments_patients_today(date_now, conn)
 
-    if (clickData is not None) and ('reset-home-appointment-information' not in changed_id):
-        clicked_id = clickData['points'][0]['y']
-        appointments_today = appointments_today[appointments_today['appointment_id'] == clicked_id]
+    if len(appointments_today.index)>0:
+        appointments_today = predict_no_show(appointments_today)
 
-    req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Show_Up', 'Age', 'Gender',
-                   'Scholarship']
-    appointments_today = appointments_today[req_columns]
+        if (clickData is not None) and ('reset-home-appointment-information' not in changed_id):
+            clicked_id = clickData['points'][0]['y']
+            appointments_today = appointments_today[appointments_today['appointment_id'] == clicked_id]
+        try:
+            req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Age', 'Gender',
+                           'Scholarship','Predicted', 'Show_Up']
+        except:
+            req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Age', 'Gender',
+                           'Scholarship', 'Show_Up']
 
-    appointments_today = appointments_today.rename({
-        'appointment_id': 'Appointment ID',
-        'patient_id': 'Patient ID',
-        'Appointment': 'Appt Date & Time',
-        'Show_Up': 'Show Up',
-        'Sms_Reminder': 'SMS Reminder Sent?',
-    }, axis=1)
-    for each in ['SMS Reminder Sent?', 'Show Up', 'Scholarship']:
-        appointments_today[each] = appointments_today[each].apply(lambda x: 'Yes' if x == 1 else "No")
+        appointments_today = appointments_today[req_columns]
 
-    appointments_today['Gender'] = appointments_today['Gender'].apply(lambda x: 'Female' if x == 0 else "Male")
+        appointments_today = appointments_today.rename({
+            'appointment_id': 'Appointment ID',
+            'patient_id': 'Patient ID',
+            'Appointment': 'Appt Date & Time',
+            'Show_Up': 'Show Up',
+            'Sms_Reminder': 'SMS Reminder Sent?',
+        }, axis=1)
 
-    table = dash_table.DataTable(
-        data=appointments_today.to_dict('records'),
-        columns=[{"name": i, "id": i} for i in appointments_today.columns],
-        style_table={'overflowX': 'auto'},
-        style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
-        sort_action='native',
-    )
+        table = dash_table.DataTable(
+            data=appointments_today.to_dict('records'),
+            columns=[{"name": i, "id": i} for i in appointments_today.columns],
+            style_table={'overflowX': 'auto'},
+            style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
+            sort_action='native',
+        )
+    else:
+        empty_df = pd.DataFrame(['Add in some appointments for today!'],columns=[''])
+        table = dash_table.DataTable(
+            data=empty_df.to_dict('records'),
+            columns=[{"name": i, "id": i} for i in empty_df.columns],
+            style_table={'overflowX': 'auto'},
+            style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
+            sort_action='native',
+        )
     return table
 
 
@@ -346,8 +355,6 @@ def toggle_modal(n1, patient_id, appt_date, timeslot_selected):
         appointment_date = datetime(appointment_date.year, appointment_date.month, appointment_date.day) + timedelta(
             hours=hour_selected, minutes=minute_selected)
         appointment_date = appointment_date.replace(tzinfo=timezone.utc).isoformat().replace("T", " ")
-
-        # TODO: Add in predictions? Any use for admin to know if patient will show up or not before submitting?
 
         cols = (
             "appointment_id", "patient_id", "Register_Time", "Appointment", "Day", "Sms_Reminder", "Waiting_Time",
