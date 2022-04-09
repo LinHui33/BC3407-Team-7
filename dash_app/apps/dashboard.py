@@ -468,14 +468,14 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
 
             if chosen == 'Year':
                 time_group = '%Y'
-            elif chosen == 'Quarter':
-                time_group = '%y-%q'
             elif chosen == 'Month':
                 time_group = '%y-%m'
             elif chosen == 'Day':
                 time_group = '%y-%m-%d'
-
-            df['Appointment'] = pd.to_datetime(df['Appointment']).dt.strftime(time_group)
+            if chosen == 'Quarter':
+                df['Appointment'] = pd.to_datetime(df['Appointment']).dt.to_period("Q").astype(str)
+            else:
+                df['Appointment'] = pd.to_datetime(df['Appointment']).dt.strftime(time_group)
             df = df.groupby('Appointment')['appointment_id'].count().reset_index()
             df.rename({'Appointment': 'Appointment Date', 'appointment_id': 'Count of Appointments'}, axis=1,
                       inplace=True)
@@ -506,14 +506,15 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
 
             if chosen == 'Year':
                 time_group = '%Y'
-            elif chosen == 'Quarter':
-                time_group = '%y-%q'
             elif chosen == 'Month':
                 time_group = '%y-%m'
             elif chosen == 'Day':
                 time_group = '%y-%m-%d'
+            if chosen == 'Quarter':
+                df['first_appt'] = pd.to_datetime(df['first_appt']).dt.to_period("Q").astype(str)
+            else:
+                df['first_appt'] = pd.to_datetime(df['first_appt']).dt.strftime(time_group)
 
-            df['first_appt'] = pd.to_datetime(df['first_appt']).dt.strftime(time_group)
             df = df.groupby('first_appt')['patient_id'].count().reset_index()
             df.rename({'first_appt': 'Date', 'patient_id': 'Count of New Patients'}, axis=1,
                       inplace=True)
@@ -529,8 +530,57 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
                 hovermode='x unified',  # see https://plotly.com/python/hover-text-and-formatting/
             )
             return fig
+        def create_gender_dist():
+            conn = sqlite3.connect("assets/hospital_database.db")
+
+            df = pd.read_sql("""
+                       Select *
+                       from patients;
+                       """, conn)
+            df = df[df['first_appt'] != '']
+
+            df['Gender'] = df['Gender'].apply(lambda x: 'Male' if x=='1' else 'Female')
+            labels = df['Gender'].value_counts().index
+            values = df['Gender'].value_counts().values
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Pie(labels=labels, values=values))
+            fig.update_traces(textposition='inside')
+            fig.update_layout(
+                title="Patient by Gender",
+                font_family="Helvetica",
+                title_font_family="Helvetica",
+                plot_bgcolor="white",
+                hovermode='x unified',
+                uniformtext_minsize=15,
+                uniformtext_mode='hide')
+
+            return fig
+        def create_age_dist():
+            conn = sqlite3.connect("assets/hospital_database.db")
+
+            df = pd.read_sql("""
+                       Select *
+                       from patients;
+                       """, conn)
+            df = df[df['first_appt'] != '']
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Box(x=df.Age.values, name='Age'))
+            fig.update_layout(
+                title="Patient Age",
+                font_family="Helvetica",
+                title_font_family="Helvetica",
+                plot_bgcolor="white")
+
+            return fig
+
 
         content = html.Div([dcc.Graph(figure=create_num_new_patients()),
+                            dcc.Graph(figure=create_gender_dist()),
+                            dcc.Graph(figure=create_age_dist()),
                             ])
     elif tab == 'dashboard-tab-4':
         def create_capacity():

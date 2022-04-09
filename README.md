@@ -43,7 +43,7 @@
       1. Show Up rates across various patient characteristics and appointment detail
    3. Patients
       1. Number of New Patients
-      2. **TODO: Patient Characteristics**
+      2. Patient Characteristics
    4. Historical Hospital Capacity
       1. Capacity used by month
    5. **TODO: Dashboard with Past ML Performance**
@@ -64,20 +64,6 @@
          1. Installation & How to Run
          2. User journey of Nurse Role 
          3. User journey of Admin Role
-
-    
-#### Known Limitations (not v. important, can include in report if want):
-
-1. Application is hosted online on Heroku Any changes made to data files deployed together with the application will not
-   persist - e.g. updates to sqlite .db files while deployed online will only remain temporarily for ~30mins
-    1. Workarounds for this include utilising a cloud DB service (e.g. Heroku's PostgreSQL, or using other cloud
-       services/databases)
-    2. For simplicity's sake, we will assume that this data portal will be deployed on the Hospital's intranet, where
-       changes made to data files will persist. The current deployment only serves as a Proof-of-Concept.
-2. Flask-login may at times seem a little buggy due to Heroku Deployment
-    1. Resolved by appending '--preload' to procfile, with reference
-       to https://stackoverflow.com/questions/39684364/heroku-gunicorn-flask-login-is-not-working-properly
-    2. Deployment on the Intranet will not require Procfile, gunicorn, or the specification of server in index.py
 
 # Project Instructions
 

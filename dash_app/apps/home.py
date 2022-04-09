@@ -158,6 +158,10 @@ layout = html.Div([
                            style={'margin': '0.5rem', "float": "right"}), ),
     ]),
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
+    dbc.Row([
+        dbc.Col(html.H5('Appointment insights for the next two weeks:'), ), #TODO
+        dcc.Graph(),
+    ],style={"margin-top":'2rem'})
 
     # dcc.Interval(n_intervals=1000,id='refresh-home')
 ], id='home-page')
@@ -215,9 +219,9 @@ def render_home(dummy):
                       annotation_text="  " + date_now.strftime("%H:%M"), annotation_position="outside top right",
                       fillcolor="green", opacity=1, line_width=1)
 
-        exp_filled_capacity = round(len(appointments_today[appointments_today['Predicted'] == 'Yes'].index) / 27455 * 100,
+        exp_filled_capacity = round(len(appointments_today[appointments_today['Predicted'] == 'Yes'].index) / 759 * 100,
                                     2)
-        free_capacity = 27455 - len(appointments_today[appointments_today['Predicted'] == 'Yes'].index)
+        free_capacity = 759 - len(appointments_today[appointments_today['Predicted'] == 'Yes'].index)
         exp_no_show = len(appointments_today[appointments_today['Predicted'] == 'No'].index)
         exp_no_show_rate = round(exp_no_show/num_appts,2)
 
