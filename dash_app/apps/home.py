@@ -210,11 +210,18 @@ def render_home(dummy):
                           # hover_name="",
                           hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up','Predicted'],
                           )
-        fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
-                          paper_bgcolor='#FFFFFF',
-                          plot_bgcolor='#FFFFFF',
-                          title=f'Appointments for {date_now.strftime("%A %d %b %Y")}'
-                          )
+        try:
+            fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
+                              paper_bgcolor='#FFFFFF',
+                              plot_bgcolor='#FFFFFF',
+                              title=f'Appointments for {date_now.strftime("%A %-d %b %Y")}'
+                              )
+        except:
+            fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
+                              paper_bgcolor='#FFFFFF',
+                              plot_bgcolor='#FFFFFF',
+                              title=f'Appointments for {date_now.strftime("%A %#d %b %Y")}'
+                              )
         fig.add_vrect(x0=date_now, x1=date_now,
                       annotation_text="  " + date_now.strftime("%H:%M"), annotation_position="outside top right",
                       fillcolor="green", opacity=1, line_width=1)
@@ -246,11 +253,18 @@ def render_home(dummy):
 
     else:
         fig = go.Figure()
-        fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
-                          paper_bgcolor='#FFFFFF',
-                          plot_bgcolor='#FFFFFF',
-                          title=f'No Appointments for {date_now.strftime("%A %d %b %Y")}'
-                          )
+        try: # linux
+            fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
+                              paper_bgcolor='#FFFFFF',
+                              plot_bgcolor='#FFFFFF',
+                              title=f'No Appointments for {date_now.strftime("%A %-d %b %Y")}'
+                              )
+        except: # windows
+            fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
+                              paper_bgcolor='#FFFFFF',
+                              plot_bgcolor='#FFFFFF',
+                              title=f'No Appointments for {date_now.strftime("%A %#d %b %Y")}'
+                              )
         fig.add_annotation(x=2.5, y=2.5, text="Select 'Create Appointment' to start booking appointments.",
                            showarrow=False)
         fig.update_yaxes(fixedrange=True)
