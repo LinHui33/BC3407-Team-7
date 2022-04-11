@@ -213,7 +213,7 @@ def render_home(dummy):
         fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                           paper_bgcolor='#FFFFFF',
                           plot_bgcolor='#FFFFFF',
-                          title=f'Appointments for {date_now.strftime("%A %-d %b %Y")}'
+                          title=f'Appointments for {date_now.strftime("%A %d %b %Y")}'
                           )
         fig.add_vrect(x0=date_now, x1=date_now,
                       annotation_text="  " + date_now.strftime("%H:%M"), annotation_position="outside top right",
@@ -249,7 +249,7 @@ def render_home(dummy):
         fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                           paper_bgcolor='#FFFFFF',
                           plot_bgcolor='#FFFFFF',
-                          title=f'No Appointments for {date_now.strftime("%A %-d %b %Y")}'
+                          title=f'No Appointments for {date_now.strftime("%A %d %b %Y")}'
                           )
         fig.add_annotation(x=2.5, y=2.5, text="Select 'Create Appointment' to start booking appointments.",
                            showarrow=False)
