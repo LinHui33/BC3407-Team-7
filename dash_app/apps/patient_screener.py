@@ -65,41 +65,6 @@ edit_patients_modal = html.Div(
     ]
 )
 
-
-@app.callback(Output('edit-patients-patient-selection', 'value'),
-              [Output(f'patient-{x}-selected', 'value') for x in
-               ['Age', 'Gender', 'Diabetes', 'Drinks', 'HyperTension', 'Handicap', 'Smoker', 'Scholarship',
-                'Tuberculosis']],
-              Input('edit-patients-open', 'n_clicks'),
-              State('patients-data-table', 'selected_rows'),
-              State('patients-data-table', 'data'),
-              )
-def render_selected_patient(n1, row, data):
-    if n1:
-        existing_data = pd.DataFrame(data).drop(['First Appointment'], axis=1)
-        data = existing_data.iloc[row[0], :].values.tolist()
-        if data[2] == 'Male':
-            gender = '1'
-        else:
-            gender = '0'
-        traits = ['1' if x == 'Yes' else '0' for x in data[3:]]
-        results = data[0:2] + [gender] + traits
-        return tuple(results)
-    else:
-        return dash.no_update
-
-
-@app.callback(
-    Output(f"edit-patients-modal", "is_open"),
-    [Input(f"edit-patients-open", "n_clicks"), Input(f"edit-patients-close", "n_clicks")],
-    [State(f"edit-patients-modal", "is_open")],
-)
-def toggle_modal(n1, n2, is_open):
-    if n1 or n2:
-        return not is_open
-    return is_open
-
-
 empty_table = pd.DataFrame(columns=[''])
 layout = html.Div([
     html.H5("Patients Screener"),
@@ -146,11 +111,9 @@ layout = html.Div([
     html.Hr(),
     dbc.Spinner([
         dash_table.DataTable(
-            style_table={'overflowX': 'auto', 'height': 300, 'zIndex': '0'},
-            style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
+            style_cell={'font-family': 'Arial', 'width': 150, 'textAlign': 'center'},
             id='patients-data-table',
             virtualization=True,
-            # fixed_rows={'headers': True},
             filter_action='native',
             sort_action='native',
             row_selectable='single',  # requires empty data for intialization
@@ -158,8 +121,42 @@ layout = html.Div([
             columns=[{"name": i, "id": i} for i in empty_table.columns],
         )
     ], fullscreen=False, color='#0D6EFD')
-
 ], id='patients-layout')
+
+
+
+@app.callback(Output('edit-patients-patient-selection', 'value'),
+              [Output(f'patient-{x}-selected', 'value') for x in
+               ['Age', 'Gender', 'Diabetes', 'Drinks', 'HyperTension', 'Handicap', 'Smoker', 'Scholarship',
+                'Tuberculosis']],
+              Input('edit-patients-open', 'n_clicks'),
+              State('patients-data-table', 'selected_rows'),
+              State('patients-data-table', 'data'),
+              )
+def render_selected_patient(n1, row, data):
+    if n1:
+        existing_data = pd.DataFrame(data).drop(['First Appointment'], axis=1)
+        data = existing_data.iloc[row[0], :].values.tolist()
+        if data[2] == 'Male':
+            gender = '1'
+        else:
+            gender = '0'
+        traits = ['1' if x == 'Yes' else '0' for x in data[3:]]
+        results = data[0:2] + [gender] + traits
+        return tuple(results)
+    else:
+        return dash.no_update
+
+
+@app.callback(
+    Output(f"edit-patients-modal", "is_open"),
+    [Input(f"edit-patients-open", "n_clicks"), Input(f"edit-patients-close", "n_clicks")],
+    [State(f"edit-patients-modal", "is_open")],
+)
+def toggle_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
 
 
 @app.callback(Output("update-patients-patient-id", 'options'),

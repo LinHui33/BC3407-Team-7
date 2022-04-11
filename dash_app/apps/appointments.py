@@ -6,8 +6,6 @@ import dash_bootstrap_components as dbc
 from app import app, server
 from methods.User import User
 import sqlite3
-
-# https://stackoverflow.com/questions/49456158/integer-in-python-pandas-becomes-blob-binary-in-sqlite
 from datetime import datetime, timedelta, time, timezone
 import numpy as np
 import pytz
@@ -72,18 +70,6 @@ edit_appointment_modal = html.Div(
         ),
     ]
 )
-
-
-@app.callback(
-    Output(f"edit-appointment-modal", "is_open"),
-    [Input(f"edit-appointment-open", "n_clicks"), Input(f"edit-appointment-close", "n_clicks")],
-    [State(f"edit-appointment-modal", "is_open")],
-)
-def toggle_modal(n1, n2, is_open):
-    if n1 or n2:
-        return not is_open
-    return is_open
-
 
 empty_table = pd.DataFrame(columns=[''])
 layout = html.Div([
@@ -151,11 +137,9 @@ layout = html.Div([
     html.Hr(),
     dbc.Spinner([
         dash_table.DataTable(
-            style_table={'overflowX': 'auto', 'height': 300, 'zIndex': '0'},
-            style_cell={'font-family': 'Arial', 'minWidth': 95, 'width': 95, 'maxWidth': 95, 'textAlign':'center'},
+            style_cell={'font-family': 'Arial','width': 95, 'textAlign':'center'},
             id='appointments-data-table',
             virtualization=True,
-            # fixed_rows={'headers': True},
             filter_action='native',
             sort_action='native',
             row_selectable='single',  # requires empty data for intialization
@@ -167,7 +151,17 @@ layout = html.Div([
 ], id='appointments-layout')
 
 
-# Todo: Enable editing of Appointments
+
+@app.callback(
+    Output(f"edit-appointment-modal", "is_open"),
+    [Input(f"edit-appointment-open", "n_clicks"), Input(f"edit-appointment-close", "n_clicks")],
+    [State(f"edit-appointment-modal", "is_open")],
+)
+def toggle_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
+
 
 @app.callback(Output("update-appointments-appointment-id", 'options'),
               Input('appointments-layout', 'children'),

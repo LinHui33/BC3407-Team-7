@@ -139,7 +139,7 @@ layout = html.Div([
     dbc.Row([
         dbc.Spinner(dbc.Alert(color='success',
                               style={'margin': "1rem"}, id='insight-home')
-                              , fullscreen=False, color='#0D6EFD'),
+                    , fullscreen=False, color='#0D6EFD'),
     ]),
     dbc.Spinner([
         create_appointment, create_patient,
@@ -159,26 +159,24 @@ layout = html.Div([
     ]),
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
     dbc.Row([
-        dbc.Col(html.H5('Appointment insights for the next two weeks:'), ), #TODO
+        dbc.Col(html.H5('Appointment insights for the next two weeks:'), ),  # TODO
         dcc.Graph(),
-    ],style={"margin-top":'2rem'})
+    ], style={"margin-top": '2rem'})
 
     # dcc.Interval(n_intervals=1000,id='refresh-home')
 ], id='home-page')
 
 
 def get_appointments_patients_today(date_now, conn):
-        date = f"'{date_now.replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
-        appointments = pd.read_sql(
-            f"SELECT * FROM appointments left join patients using (patient_id) where Date(Appointment) = date({date});",
-            conn,
-        )
-        # appointments['Appointment'] = pd.to_datetime(appointments['Appointment'])
-        # appointments_today = appointments[appointments['Appointment'].dt.date == date_now]
-        return appointments
+    date = f"'{date_now.replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
+    appointments = pd.read_sql(
+        f"SELECT * FROM appointments left join patients using (patient_id) where Date(Appointment) = date({date});",
+        conn,
+    )
+    return appointments
 
 
-@app.callback( Output('appointment-date-selection', 'min_date_allowed'),
+@app.callback(Output('appointment-date-selection', 'min_date_allowed'),
               Output('appointment-date-selection', 'initial_visible_month'),
               Output('appointment-date-selection', 'date'),
               Output('home-gantt-schedule', 'figure'),
@@ -188,7 +186,7 @@ def get_appointments_patients_today(date_now, conn):
 def render_home(dummy):
     date_now = datetime.now(sgt).replace(tzinfo=timezone.utc)
     conn = sqlite3.connect('assets/hospital_database.db')
-    
+
     appointments_today = get_appointments_patients_today(date_now, conn)
 
     min_date_allowed = datetime(date_now.year, date_now.month, date_now.day)
@@ -207,16 +205,15 @@ def render_home(dummy):
                           x_end='End',
                           y='appointment_id',
                           color="Predicted",
-                          # hover_name="",
-                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up','Predicted'],
+                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up', 'Predicted'],
                           )
-        try:
+        try:  # mac
             fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                               paper_bgcolor='#FFFFFF',
                               plot_bgcolor='#FFFFFF',
                               title=f'Appointments for {date_now.strftime("%A %-d %b %Y")}'
                               )
-        except:
+        except:  # windows
             fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                               paper_bgcolor='#FFFFFF',
                               plot_bgcolor='#FFFFFF',
@@ -230,13 +227,13 @@ def render_home(dummy):
                                     2)
         free_capacity = 759 - len(appointments_today[appointments_today['Predicted'] == 'Yes'].index)
         exp_no_show = len(appointments_today[appointments_today['Predicted'] == 'No'].index)
-        exp_no_show_rate = round(exp_no_show/num_appts,2)
+        exp_no_show_rate = round(exp_no_show / num_appts, 2)
 
         insight_msg = [html.P(
             f"There {'is' if num_appts == 1 else 'are'} {num_appts if num_appts > 0 else 'no'} appointment{'' if num_appts == 1 else 's'} for today. "
             f"Expected free capacity is {100 - exp_filled_capacity}% ({free_capacity} slots). "
             f"Expected no-show rate is {exp_no_show_rate}% ({exp_no_show} appointments)."),
-                       ]
+        ]
 
         if exp_filled_capacity < 20:
             insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
@@ -253,13 +250,13 @@ def render_home(dummy):
 
     else:
         fig = go.Figure()
-        try: # linux
+        try:  # linux
             fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                               paper_bgcolor='#FFFFFF',
                               plot_bgcolor='#FFFFFF',
                               title=f'No Appointments for {date_now.strftime("%A %-d %b %Y")}'
                               )
-        except: # windows
+        except:  # windows
             fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
                               paper_bgcolor='#FFFFFF',
                               plot_bgcolor='#FFFFFF',
@@ -271,7 +268,7 @@ def render_home(dummy):
         fig.update_xaxes(fixedrange=True)
         insight_msg = [html.P(
             f"There are no appointments for today."),
-                       ]
+        ]
 
     return min_date_allowed, initial_visible_month, date, fig, insight_msg
 
@@ -286,7 +283,7 @@ def render_table(clickData, n1):
     conn = sqlite3.connect('assets/hospital_database.db')
     appointments_today = get_appointments_patients_today(date_now, conn)
 
-    if len(appointments_today.index)>0:
+    if len(appointments_today.index) > 0:
         appointments_today = predict_no_show(appointments_today)
 
         if (clickData is not None) and ('reset-home-appointment-information' not in changed_id):
@@ -294,7 +291,7 @@ def render_table(clickData, n1):
             appointments_today = appointments_today[appointments_today['appointment_id'] == clicked_id]
         try:
             req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Age', 'Gender',
-                           'Scholarship','Predicted', 'Show_Up']
+                           'Scholarship', 'Predicted', 'Show_Up']
         except:
             req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Age', 'Gender',
                            'Scholarship', 'Show_Up']
@@ -317,7 +314,7 @@ def render_table(clickData, n1):
             sort_action='native',
         )
     else:
-        empty_df = pd.DataFrame(['Add in some appointments for today!'],columns=[''])
+        empty_df = pd.DataFrame(['Add in some appointments for today!'], columns=[''])
         table = dash_table.DataTable(
             data=empty_df.to_dict('records'),
             columns=[{"name": i, "id": i} for i in empty_df.columns],
@@ -390,11 +387,7 @@ def toggle_modal(n1, patient_id, appt_date, timeslot_selected):
                                         f';', conn).iat[0, 0]
         if first_appointment == '':
             data = (appointment_date, patient_id)
-            sql_to_edit = f"""
-UPDATE patients
-SET first_appt = ?
-WHERE patient_id = ? ;
-"""
+            sql_to_edit = f"UPDATE patients SET first_appt = ? WHERE patient_id = ? ;"
             c.execute(sql_to_edit, data)
             conn.commit()
         return layout
