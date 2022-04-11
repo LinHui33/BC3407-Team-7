@@ -5,6 +5,11 @@ import dash_bootstrap_components as dbc
 from app import app, server
 from methods.User import User
 import sqlite3
+import pandas as pd
+import numpy as np
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+import plotly.express as px
 
 tabs_styles = {
     'height': '44px',
@@ -126,12 +131,6 @@ layout = html.Div([
               State('dashboard-tab-1-appt-date', 'end_date'),
               )
 def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
-    import pandas as pd
-    import plotly.graph_objs as go
-    import numpy as np
-    from plotly.subplots import make_subplots
-    import plotly.express as px
-
     if tab == 'dashboard-tab-1':
         conn = sqlite3.connect('assets/hospital_database.db')
         df = pd.read_sql('SELECT * FROM appointments;', conn)
@@ -455,7 +454,6 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
                             dcc.Graph(figure=create_graph5()),
                             dcc.Graph(figure=create_graph6()),
                             ])
-
     elif tab == 'dashboard-tab-2':
         def create_num_appts(chosen=n2):
 
