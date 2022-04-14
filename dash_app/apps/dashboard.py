@@ -1,9 +1,7 @@
-import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app, server
-from methods.User import User
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -161,7 +159,6 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
             df['Show Up'] = df['Show Up'].astype('int')
             sr_month = df.groupby('Appointment Month')['Show Up'].mean().round(2)
             fig = go.Figure()
-            # You can pull individual columns of data from the dataset and use markers or not
             fig.add_trace(
                 go.Scatter(x=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                            y=sr_month,
@@ -206,7 +203,6 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
             x = np.array(df['Age'])
             x = np.unique(x).tolist()
             fig = go.Figure()
-            # You can pull individual columns of data from the dataset and use markers or not
             fig.add_trace(go.Scatter(x=x, y=sr_age,
                                      mode='lines'))
             fig.update_layout(
@@ -347,7 +343,6 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
 
             sr_day = df.groupby('Day')['Show Up'].mean()
             fig = go.Figure()
-            # You can pull individual columns of data from the dataset and use markers or not
             fig.add_trace(go.Bar(x=['Mon', 'Tue', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'], y=sr_day, ))
             fig.update_layout(
                 title="Average Show up rate by Day of Week",
@@ -480,11 +475,8 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
             fig = px.line(df, x='Appointment Date', y='Count of Appointments')
             fig.update_layout(
                 title="Count of Appointments Serviced (Showed Up) over time",
-                # xaxis_title="Age",
-                # yaxis_title="Show up rate",
                 font_family="Helvetica",
                 title_font_family="Helvetica",
-                # showlegend=False,  # change True/False accordingly
                 plot_bgcolor="white",
                 hovermode='x unified',  # see https://plotly.com/python/hover-text-and-formatting/
             )
@@ -500,7 +492,8 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
                        Select patient_id, first_appt 
                        from patients;
                        """, conn)
-            df = df[df['first_appt'] != '']
+            df = df[(df['first_appt'] != '') & (df['first_appt'] != None) ]
+            df['first_appt'] = df['first_appt'].apply(lambda x: str(x).split(" ")[0])
 
             if chosen == 'Year':
                 time_group = '%Y'
@@ -509,9 +502,9 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
             elif chosen == 'Day':
                 time_group = '%y-%m-%d'
             if chosen == 'Quarter':
-                df['first_appt'] = pd.to_datetime(df['first_appt']).dt.to_period("Q").astype(str)
+                df['first_appt'] = pd.to_datetime(df['first_appt'],errors='coerce').dt.to_period("Q").astype(str)
             else:
-                df['first_appt'] = pd.to_datetime(df['first_appt']).dt.strftime(time_group)
+                df['first_appt'] = pd.to_datetime(df['first_appt'],errors='coerce').dt.strftime(time_group)
 
             df = df.groupby('first_appt')['patient_id'].count().reset_index()
             df.rename({'first_appt': 'Date', 'patient_id': 'Count of New Patients'}, axis=1,
@@ -519,11 +512,8 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
             fig = px.line(df, x='Date', y='Count of New Patients')
             fig.update_layout(
                 title="Count of New Patients over time",
-                # xaxis_title="Age",
-                # yaxis_title="Show up rate",
                 font_family="Helvetica",
                 title_font_family="Helvetica",
-                # showlegend=False,  # change True/False accordingly
                 plot_bgcolor="white",
                 hovermode='x unified',  # see https://plotly.com/python/hover-text-and-formatting/
             )
@@ -597,12 +587,8 @@ def render_content(tab, n1, n2, n3, start_date_1, end_date_1):
                                        'Dec']
             fig = px.bar(df, x="Appointment Month", y="Capacity", title='% of Total Capacity used by Month')
             fig.update_layout(
-                # title="Show up rate vs Age",
-                # xaxis_title="Age",
-                # yaxis_title="Show up rate",
                 font_family="Helvetica",
                 title_font_family="Helvetica",
-                # showlegend=False,  # change True/False accordingly
                 plot_bgcolor="white",
                 hovermode='x unified',  # see https://plotly.com/python/hover-text-and-formatting/
             )

@@ -4,9 +4,8 @@ from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app, server
-from methods.User import User
 import sqlite3
-from datetime import datetime, timedelta, time, timezone
+from datetime import datetime, time, timezone
 import numpy as np
 import pytz
 
@@ -107,6 +106,8 @@ layout = html.Div([
                                        ])
                              ]),
                     dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='update-appointments-registered-date',
+                                                             start_date='2022-04-01',
+                                                             end_date='2022-04-30',
                                                              clearable=True,
                                                              style={'zIndex': '1'}), fullscreen=False,
                                          color='#0D6EFD')])
@@ -117,6 +118,8 @@ layout = html.Div([
                                        ])
                              ]),
                     dbc.Row([dbc.Spinner(dcc.DatePickerRange(id='update-appointments-appointment-date',
+                                                             start_date='2022-04-01',
+                                                             end_date='2022-04-30',
                                                              clearable=True,
                                                              style={'zIndex': '1'}), fullscreen=False,
                                          color='#0D6EFD')])
@@ -137,9 +140,10 @@ layout = html.Div([
     html.Hr(),
     dbc.Spinner([
         dash_table.DataTable(
-            style_cell={'font-family': 'Arial','width': 95, 'textAlign':'center'},
+            style_cell={'font-family': 'Arial', 'width': 95, 'textAlign': 'center'},
+            style_table={'min-height':'500px','max-height':'500px','height':'500px'},
             id='appointments-data-table',
-            virtualization=True,
+            # virtualization=True,
             filter_action='native',
             sort_action='native',
             row_selectable='single',  # requires empty data for intialization
@@ -149,7 +153,6 @@ layout = html.Div([
     ], fullscreen=False, color='#0D6EFD')
 
 ], id='appointments-layout')
-
 
 
 @app.callback(
@@ -229,7 +232,7 @@ def render_options(page_load):
               Output('edit-appointment-status', 'children'),
 
               Input("update-appointments-screener", 'n_clicks'),
-              Input("edit-appointment-submit",'n_clicks'),
+              Input("edit-appointment-submit", 'n_clicks'),
 
               State("update-appointments-appointment-id", 'value'),
               State("update-appointments-patient-id", 'value'),
@@ -259,9 +262,10 @@ def render_table(n1, n2,
                 appointment_changed = datetime.strptime(appointment_date_selection, '%Y-%m-%d').date()
 
             appointment_changed_hours, appointment_changed_minutes = appointment_date_timeslot.split(":")
-            appointment_changed = appointment_changed  + relativedelta(hours=int(appointment_changed_hours), minutes=int(appointment_changed_minutes))
+            appointment_changed = appointment_changed + relativedelta(hours=int(appointment_changed_hours),
+                                                                      minutes=int(appointment_changed_minutes))
             appointment_changed = appointment_changed.replace(tzinfo=timezone.utc).isoformat().replace("T", " ")
-            new_data = (appointment_changed,show_up_selection,appointment_id_selection)
+            new_data = (appointment_changed, show_up_selection, appointment_id_selection)
 
             sql_to_edit = f"""
 UPDATE appointments
@@ -269,7 +273,7 @@ SET Appointment = ?,
     Show_Up = ?
 WHERE appointment_id = ?;
 """
-            c.execute(sql_to_edit,new_data)
+            c.execute(sql_to_edit, new_data)
             conn.commit()
             update_message = dbc.Alert('Updated successfully!', color='success')
 
@@ -339,15 +343,19 @@ WHERE appointment_id = ?;
         appointments = appointments[req_cols]
 
         appointments = appointments.rename({'appointment_id': 'Appt ID',
-                        'patient_id': 'Patient ID',
-                        'Show_Up': 'Show Up',
-                        'Appointment': 'Appointment Date & Time',
-                        'Register_Time': 'Registered Date & Time',
-                        }, axis=1)
+                                            'patient_id': 'Patient ID',
+                                            'Show_Up': 'Show Up',
+                                            'Appointment': 'Appointment Date & Time',
+                                            'Register_Time': 'Registered Date & Time',
+                                            }, axis=1)
 
-        appointments['Registered Date & Time'] = pd.to_datetime(appointments['Registered Date & Time'],infer_datetime_format=True).dt.strftime('%Y-%m-%d %H:%M')
-        appointments['Appointment Date & Time'] = pd.to_datetime(appointments['Appointment Date & Time'],infer_datetime_format=True).dt.strftime('%Y-%m-%d %H:%M')
-        appointments['Show Up'] = appointments['Show Up'].apply(lambda x: 'Yes' if x=='1' else 'No')
+        appointments['Registered Date & Time'] = pd.to_datetime(appointments['Registered Date & Time'],
+                                                                infer_datetime_format=True).dt.strftime(
+            '%Y-%m-%d %H:%M')
+        appointments['Appointment Date & Time'] = pd.to_datetime(appointments['Appointment Date & Time'],
+                                                                 infer_datetime_format=True).dt.strftime(
+            '%Y-%m-%d %H:%M')
+        appointments['Show Up'] = appointments['Show Up'].apply(lambda x: 'Yes' if x == '1' else 'No')
 
         data = appointments.to_dict('records')
         columns = [{"name": i, "id": i} for i in appointments.columns]
@@ -369,13 +377,14 @@ WHERE appointment_id = ?;
               )
 def render_selected_patient(n1, row, data):
     if n1:
-        appt_id, patient_id, register_time, appointment_date, show_up = pd.DataFrame(data).iloc[row[0], :].values.tolist()
-        if show_up=="Yes":
+        appt_id, patient_id, register_time, appointment_date, show_up = pd.DataFrame(data).iloc[row[0],
+                                                                        :].values.tolist()
+        if show_up == "Yes":
             show_up = '1'
         else:
             show_up = '0'
-        date = datetime.strptime(appointment_date,'%Y-%m-%d %H:%M')
-        timeslot = datetime.strptime(appointment_date,'%Y-%m-%d %H:%M').strftime('%H:%M')
+        date = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M')
+        timeslot = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M').strftime('%H:%M')
 
         return appt_id, date, timeslot, show_up
     else:

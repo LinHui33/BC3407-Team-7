@@ -1,7 +1,6 @@
 import joblib
 from sklearn import preprocessing
 
-
 def predict_no_show(df):
     try:
         loaded_model = joblib.load('assets/Cart Model')

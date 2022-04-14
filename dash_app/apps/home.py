@@ -137,8 +137,7 @@ layout = html.Div([
     dbc.Row([html.Div(['To view all appointments, please go to the ',
                        html.A("Appointments Screener", href='/appointments', target='_blank'), '.'])]),
     dbc.Row([
-        dbc.Spinner(dbc.Alert(color='success',
-                              style={'margin': "1rem"}, id='insight-home')
+        dbc.Spinner(html.Div(style={'margin': "1rem"}, id='insight-home')
                     , fullscreen=False, color='#0D6EFD'),
     ]),
     dbc.Spinner([
@@ -200,24 +199,34 @@ def render_home(dummy):
 
     if num_appts > 0:
         appointments_today = predict_no_show(appointments_today)
-        fig = px.timeline(appointments_today,
+
+        appointments_today_plot = appointments_today.groupby(['Start','End','Predicted'])['patient_id'].count().reset_index()
+        appointments_today_plot.rename({'patient_id':'Number of Appointments',
+                                        'Predicted':'Predicted to Show',
+                                        },axis=1,inplace=True)
+        appointments_today_plot = appointments_today_plot[appointments_today_plot['Number of Appointments']>0]
+
+        fig = px.timeline(appointments_today_plot,
                           x_start='Start',
                           x_end='End',
-                          y='appointment_id',
-                          color="Predicted",
-                          hover_data=['patient_id', "appointment_id", "Start", "End", 'Show_Up', 'Predicted'],
+                          y='Number of Appointments',
+                          color="Predicted to Show",
+                          color_discrete_map={'Yes':'#35c41f','No':'#c4221f'},
+                          hover_data=["Start", "End", 'Predicted to Show'],
                           )
         try:  # mac
-            fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
+            fig.update_layout(yaxis={'visible': True, 'showticklabels': True},
                               paper_bgcolor='#FFFFFF',
                               plot_bgcolor='#FFFFFF',
-                              title=f'Appointments for {date_now.strftime("%A %-d %b %Y")}'
+                              title=f'Appointments for {date_now.strftime("%A %-d %b %Y")}',
+                              hovermode='x unified',
                               )
         except:  # windows
-            fig.update_layout(yaxis={'visible': False, 'showticklabels': False},
+            fig.update_layout(yaxis={'visible': True, 'showticklabels': True},
                               paper_bgcolor='#FFFFFF',
                               plot_bgcolor='#FFFFFF',
-                              title=f'Appointments for {date_now.strftime("%A %#d %b %Y")}'
+                              title=f'Appointments for {date_now.strftime("%A %#d %b %Y")}',
+                              hovermode='x unified',
                               )
         fig.add_vrect(x0=date_now, x1=date_now,
                       annotation_text="  " + date_now.strftime("%H:%M"), annotation_position="outside top right",
@@ -227,26 +236,69 @@ def render_home(dummy):
                                     2)
         free_capacity = 759 - len(appointments_today[appointments_today['Predicted'] == 'Yes'].index)
         exp_no_show = len(appointments_today[appointments_today['Predicted'] == 'No'].index)
-        exp_no_show_rate = round(exp_no_show / num_appts, 2)
+        exp_no_show_rate = round(exp_no_show / num_appts *100, 2)
 
-        insight_msg = [html.P(
-            f"There {'is' if num_appts == 1 else 'are'} {num_appts if num_appts > 0 else 'no'} appointment{'' if num_appts == 1 else 's'} for today. "
-            f"Expected free capacity is {100 - exp_filled_capacity}% ({free_capacity} slots). "
-            f"Expected no-show rate is {exp_no_show_rate}% ({exp_no_show} appointments)."),
-        ]
+        fig_insight = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            number={'suffix': "% Capacity", 'font': {'size': 50}},
+            value=exp_filled_capacity,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            delta={'reference': 100, 'relative': True, 'increasing': {'color': 'red'},
+                   'decreasing': {'color': 'green'}},
+            gauge={
+                'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                'bar': {'color': "darkblue"},
+                'bgcolor': "white",
+                'borderwidth': 2,
+                'bordercolor': "gray",
+                'steps': [
+                    {'range': [0, 60], 'color': 'green'},
+                    {'range': [60, 85], 'color': 'yellow'},
+                    {'range': [85, 100], 'color': 'red'}],
+            }))
 
-        if exp_filled_capacity < 20:
-            insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
-        elif exp_filled_capacity < 50:
-            insight_msg += [html.P(f"It is recommended for more appointments to be booked.")]
-        elif exp_filled_capacity < 90:
-            insight_msg += [html.P(f"There are still some empty appointment slots for the next two weeks")]
-        elif exp_filled_capacity < 100:
-            insight_msg += [html.P(f"Careful, we are nearing full capacity for the next two weeks.")]
-        elif exp_filled_capacity >= 100:
-            insight_msg += [
-                html.P(
-                    f"We are currently overbooked, kindly only proceed with booking appointments for >2 weeks later.")]
+        fig_insight.update_layout(
+            font={'color': "black", 'family': "Helvetica"},
+            title={
+                "text": "<span style='font-size:2.0em;color:black'>"
+                        "Hospital Utilization Rate"
+                        "</span>"
+                        "<br>"
+                        "<span style='font-size:1.0em;color:black'>"
+                        f"Total Appointments Today: {num_appts}"
+                        f"</span>"
+                        "<br>"
+                        "<span style='font-size:1.0em;color:black'>"
+                        f"Additional Capacity Available: {free_capacity} slots"
+                        f"</span>"
+                        "<br>"
+                        "<span style='font-size:1.0em;color:black'>"
+                        f"Predicted No Show(s): {exp_no_show} appointments ({exp_no_show_rate}%)"
+                        f"</span>"
+            },
+            xaxis={'showgrid': False, 'range': [-1, 1]},
+            yaxis={'showgrid': False, 'range': [0, 1]}
+        )
+        insight_msg = [dcc.Graph(figure=fig_insight,style={'margin':'1rem'})]
+
+        # insight_msg += [html.P(
+        #     f"There {'is' if num_appts == 1 else 'are'} {num_appts if num_appts > 0 else 'no'} appointment{'' if num_appts == 1 else 's'} for today. "
+        #     f"Expected free capacity is {round(100 - exp_filled_capacity,2)}% ({free_capacity} slots). "
+        #     f"Expected no-show rate is {exp_no_show_rate}% ({exp_no_show} appointments)."),
+        # ]
+        #
+        # if exp_filled_capacity < 20:
+        #     insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
+        # elif exp_filled_capacity < 50:
+        #     insight_msg += [html.P(f"It is recommended for more appointments to be booked.")]
+        # elif exp_filled_capacity < 90:
+        #     insight_msg += [html.P(f"There are still some empty appointment slots that can be booked for today.")]
+        # elif exp_filled_capacity < 100:
+        #     insight_msg += [html.P(f"Careful, we are nearing full capacity for the next two weeks.")]
+        # elif exp_filled_capacity >= 100:
+        #     insight_msg += [
+        #         html.P(
+        #             f"We are currently overbooked, kindly only proceed with booking appointments for >2 weeks later.")]
 
     else:
         fig = go.Figure()
@@ -287,8 +339,9 @@ def render_table(clickData, n1):
         appointments_today = predict_no_show(appointments_today)
 
         if (clickData is not None) and ('reset-home-appointment-information' not in changed_id):
-            clicked_id = clickData['points'][0]['y']
-            appointments_today = appointments_today[appointments_today['appointment_id'] == clicked_id]
+            clicked_id = clickData['points'][0]['x']
+            appointments_today['Appointment'] = pd.to_datetime(appointments_today['Appointment'])
+            appointments_today = appointments_today[appointments_today['Appointment'] == clicked_id]
         try:
             req_columns = ['appointment_id', 'patient_id', 'Appointment', 'Sms_Reminder', 'Age', 'Gender',
                            'Scholarship', 'Predicted', 'Show_Up']
@@ -306,11 +359,30 @@ def render_table(clickData, n1):
             'Sms_Reminder': 'SMS Reminder Sent?',
         }, axis=1)
 
+        background_highlight = [
+            {
+                'if': {
+                    'column_id': f'Predicted',
+                    'filter_query': '{Predicted} = "No"',
+                },
+                'backgroundColor': '#c4221f',
+            },
+            {
+                'if': {
+                    'column_id': f'Predicted',
+                    'filter_query': '{Predicted} = "Yes"',
+                },
+                'backgroundColor': '#35c41f',
+            },
+        ]
+
+
         table = dash_table.DataTable(
             data=appointments_today.to_dict('records'),
             columns=[{"name": i, "id": i} for i in appointments_today.columns],
-            style_table={'overflowX': 'auto'},
+            style_table={'overflowX': 'auto','height':'500px'},
             style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
+            style_data_conditional = background_highlight,
             sort_action='native',
         )
     else:
@@ -318,7 +390,7 @@ def render_table(clickData, n1):
         table = dash_table.DataTable(
             data=empty_df.to_dict('records'),
             columns=[{"name": i, "id": i} for i in empty_df.columns],
-            style_table={'overflowX': 'auto'},
+            style_table={'overflowX': 'auto','height':'500px'},
             style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
             sort_action='native',
         )

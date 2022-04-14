@@ -1,11 +1,9 @@
-import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from app import app, server
 from flask_login import current_user, logout_user
 from apps import login, no_such_page, home, patient_screener, appointments, dashboard, ml
-import sqlite3
 
 server = server  # required for deployment
 
