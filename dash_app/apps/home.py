@@ -158,7 +158,7 @@ layout = html.Div([
     ]),
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
     dbc.Row([
-        dbc.Col(html.H5('Appointment insights for the next two weeks:'), ),  # TODO
+        dbc.Col(html.H5('Appointments for the next two weeks:'), ),  # TODO
         dcc.Graph(id='home-two-weeks-insights', ),
     ], style={"margin-top": '2rem'})
 
@@ -230,7 +230,6 @@ def render_chart(dummy):
 
     fig.update_layout(paper_bgcolor='#FFFFFF',
                       plot_bgcolor='#FFFFFF',
-                      title=f'Appointments for the next two weeks',
                       hovermode='x unified',
                       font={'color': "black", 'family': "Helvetica"},
                       )
