@@ -1,2 +1,5 @@
-# ignore all .DS_STORE
+# ignore all
 *.DS_STORE
+*.idea
+*.pyc
+.idea/
