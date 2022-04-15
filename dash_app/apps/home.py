@@ -159,7 +159,7 @@ layout = html.Div([
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
     dbc.Row([
         dbc.Col(html.H5('Appointment insights for the next two weeks:'), ),  # TODO
-        dcc.Graph(),
+        dcc.Graph(id='home-two-weeks-insights',),
     ], style={"margin-top": '2rem'})
 
     # dcc.Interval(n_intervals=1000,id='refresh-home')
@@ -173,6 +173,76 @@ def get_appointments_patients_today(date_now, conn):
         conn,
     )
     return appointments
+
+
+
+@app.callback(Output('home-two-weeks-insights','figure'),
+              Input('home-loading', 'children'),
+              )
+def render_chart(dummy):
+    conn = sqlite3.connect('assets/hospital_database.db')
+    today = f"'{datetime.now(sgt).replace(tzinfo=timezone.utc).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
+    two_weeks = f"'{(datetime.now(sgt).replace(tzinfo=timezone.utc) + timedelta(weeks=2)).date().strftime('%Y-%m-%d %H:%M:%S%z')}'"
+    df = pd.read_sql(
+        f"SELECT * FROM appointments left join patients using (patient_id) where "
+        f"DATE(Appointment) >= DATE({today}) AND DATE(Appointment) < DATE({two_weeks});",
+        conn,
+    )
+
+    today = datetime.now(sgt).replace(tzinfo=timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)
+    tomorrow = today + timedelta(days=1)
+    two_weeks = today + timedelta(weeks=2)
+
+    df['Appointments'] = pd.to_datetime(df["Appointment"])
+    today_df = df[(df['Appointments']>=today) & (df['Appointments']<tomorrow)]
+    two_weeks = df[(df['Appointments']>=today) & (df['Appointments']<two_weeks)]
+
+    two_weeks = predict_no_show(two_weeks)
+    two_weeks['Predicted'] = two_weeks['Predicted'].apply(lambda x: 1 if x=='Yes' else 0).astype(int)
+
+    two_weeks = two_weeks.groupby(['Appointment']).agg({"appointment_id":'count','Predicted':'sum'}).reset_index()
+    two_weeks.rename({'appointment_id':'Count',
+                      'Predicted':'Predicted to Show'},axis=1,inplace=True)
+
+    two_weeks['Full Capacity'] = int(1067/20)
+
+    fig = go.Figure(go.Indicator(
+        mode="number+delta",
+        value=len(today_df.index),
+        number={'suffix': " Appointments today", 'font': {'size': 30}},
+        delta={"reference": 1067, 'increasing': {'color': 'red'}, 'decreasing': {'color': 'green'}},
+        domain={'y': [0, 1], 'x': [0.25, 0.75]}))
+
+    fig.add_trace(go.Scatter(
+        y=two_weeks['Count'], x=two_weeks['Appointment'],
+        line=dict(color='blue'),
+        name='Appointments Scheduled'))
+
+    fig.add_trace(go.Scatter(
+        y=two_weeks['Predicted to Show'], x=two_weeks['Appointment'],
+        line=dict(color='green'),
+        name='Predicted to Show'))
+
+    fig.add_trace(go.Scatter(
+        y=two_weeks['Full Capacity'], x=two_weeks['Appointment'],
+        mode='lines',
+        line=dict(dash='dash', color='red'),
+        name='Full Capacity', ))
+
+    fig.update_layout(paper_bgcolor='#FFFFFF',
+                      plot_bgcolor='#FFFFFF',
+                      title=f'Appointments for the next two weeks',
+                      hovermode='x unified',
+                      font={'color': "black", 'family': "Helvetica"},
+                      )
+    fig.update_xaxes(
+        rangebreaks=[
+            dict(bounds=[18, 8], pattern="hour"),  # hide hours outside of 8am-6pm
+            dict(bounds=["sat", "mon"]),  # hide weekends
+        ]
+    )
+
+    return fig
 
 
 @app.callback(Output('appointment-date-selection', 'min_date_allowed'),
