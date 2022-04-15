@@ -159,7 +159,7 @@ layout = html.Div([
     dbc.Spinner(html.Div(id='home-appointment-information'), fullscreen=False, color='#0D6EFD'),
     dbc.Row([
         dbc.Col(html.H5('Appointment insights for the next two weeks:'), ),  # TODO
-        dcc.Graph(id='home-two-weeks-insights',),
+        dcc.Graph(id='home-two-weeks-insights', ),
     ], style={"margin-top": '2rem'})
 
     # dcc.Interval(n_intervals=1000,id='refresh-home')
@@ -175,8 +175,7 @@ def get_appointments_patients_today(date_now, conn):
     return appointments
 
 
-
-@app.callback(Output('home-two-weeks-insights','figure'),
+@app.callback(Output('home-two-weeks-insights', 'figure'),
               Input('home-loading', 'children'),
               )
 def render_chart(dummy):
@@ -189,22 +188,22 @@ def render_chart(dummy):
         conn,
     )
 
-    today = datetime.now(sgt).replace(tzinfo=timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)
+    today = datetime.now(sgt).replace(tzinfo=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     tomorrow = today + timedelta(days=1)
     two_weeks = today + timedelta(weeks=2)
 
     df['Appointments'] = pd.to_datetime(df["Appointment"])
-    today_df = df[(df['Appointments']>=today) & (df['Appointments']<tomorrow)]
-    two_weeks = df[(df['Appointments']>=today) & (df['Appointments']<two_weeks)]
+    today_df = df[(df['Appointments'] >= today) & (df['Appointments'] < tomorrow)]
+    two_weeks = df[(df['Appointments'] >= today) & (df['Appointments'] < two_weeks)]
 
     two_weeks = predict_no_show(two_weeks)
-    two_weeks['Predicted'] = two_weeks['Predicted'].apply(lambda x: 1 if x=='Yes' else 0).astype(int)
+    two_weeks['Predicted'] = two_weeks['Predicted'].apply(lambda x: 1 if x == 'Yes' else 0).astype(int)
 
-    two_weeks = two_weeks.groupby(['Appointment']).agg({"appointment_id":'count','Predicted':'sum'}).reset_index()
-    two_weeks.rename({'appointment_id':'Count',
-                      'Predicted':'Predicted to Show'},axis=1,inplace=True)
+    two_weeks = two_weeks.groupby(['Appointment']).agg({"appointment_id": 'count', 'Predicted': 'sum'}).reset_index()
+    two_weeks.rename({'appointment_id': 'Count',
+                      'Predicted': 'Predicted to Show'}, axis=1, inplace=True)
 
-    two_weeks['Full Capacity'] = int(1067/20)
+    two_weeks['Full Capacity'] = int(1067 / 20)
 
     fig = go.Figure(go.Indicator(
         mode="number+delta",
@@ -270,18 +269,19 @@ def render_home(dummy):
     if num_appts > 0:
         appointments_today = predict_no_show(appointments_today)
 
-        appointments_today_plot = appointments_today.groupby(['Start','End','Predicted'])['patient_id'].count().reset_index()
-        appointments_today_plot.rename({'patient_id':'Number of Appointments',
-                                        'Predicted':'Predicted to Show',
-                                        },axis=1,inplace=True)
-        appointments_today_plot = appointments_today_plot[appointments_today_plot['Number of Appointments']>0]
+        appointments_today_plot = appointments_today.groupby(['Start', 'End', 'Predicted'])[
+            'patient_id'].count().reset_index()
+        appointments_today_plot.rename({'patient_id': 'Number of Appointments',
+                                        'Predicted': 'Predicted to Show',
+                                        }, axis=1, inplace=True)
+        appointments_today_plot = appointments_today_plot[appointments_today_plot['Number of Appointments'] > 0]
 
         fig = px.timeline(appointments_today_plot,
                           x_start='Start',
                           x_end='End',
                           y='Number of Appointments',
                           color="Predicted to Show",
-                          color_discrete_map={'Yes':'#35c41f','No':'#c4221f'},
+                          color_discrete_map={'Yes': '#35c41f', 'No': '#c4221f'},
                           hover_data=["Start", "End", 'Predicted to Show'],
                           )
         try:  # mac
@@ -306,7 +306,7 @@ def render_home(dummy):
                                     2)
         free_capacity = 759 - len(appointments_today[appointments_today['Predicted'] == 'Yes'].index)
         exp_no_show = len(appointments_today[appointments_today['Predicted'] == 'No'].index)
-        exp_no_show_rate = round(exp_no_show / num_appts *100, 2)
+        exp_no_show_rate = round(exp_no_show / num_appts * 100, 2)
 
         fig_insight = go.Figure(go.Indicator(
             mode="gauge+number+delta",
@@ -349,26 +349,7 @@ def render_home(dummy):
             xaxis={'showgrid': False, 'range': [-1, 1]},
             yaxis={'showgrid': False, 'range': [0, 1]}
         )
-        insight_msg = [dcc.Graph(figure=fig_insight,style={'margin':'1rem'})]
-
-        # insight_msg += [html.P(
-        #     f"There {'is' if num_appts == 1 else 'are'} {num_appts if num_appts > 0 else 'no'} appointment{'' if num_appts == 1 else 's'} for today. "
-        #     f"Expected free capacity is {round(100 - exp_filled_capacity,2)}% ({free_capacity} slots). "
-        #     f"Expected no-show rate is {exp_no_show_rate}% ({exp_no_show} appointments)."),
-        # ]
-        #
-        # if exp_filled_capacity < 20:
-        #     insight_msg += [html.P(f"It is highly recommended for more appointments to be booked soon.")]
-        # elif exp_filled_capacity < 50:
-        #     insight_msg += [html.P(f"It is recommended for more appointments to be booked.")]
-        # elif exp_filled_capacity < 90:
-        #     insight_msg += [html.P(f"There are still some empty appointment slots that can be booked for today.")]
-        # elif exp_filled_capacity < 100:
-        #     insight_msg += [html.P(f"Careful, we are nearing full capacity for the next two weeks.")]
-        # elif exp_filled_capacity >= 100:
-        #     insight_msg += [
-        #         html.P(
-        #             f"We are currently overbooked, kindly only proceed with booking appointments for >2 weeks later.")]
+        insight_msg = [dcc.Graph(figure=fig_insight, style={'margin': '1rem'})]
 
     else:
         fig = go.Figure()
@@ -446,13 +427,12 @@ def render_table(clickData, n1):
             },
         ]
 
-
         table = dash_table.DataTable(
             data=appointments_today.to_dict('records'),
             columns=[{"name": i, "id": i} for i in appointments_today.columns],
-            style_table={'overflowX': 'auto','height':'500px'},
+            style_table={'overflowX': 'auto', 'height': '500px'},
             style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
-            style_data_conditional = background_highlight,
+            style_data_conditional=background_highlight,
             sort_action='native',
         )
     else:
@@ -460,7 +440,7 @@ def render_table(clickData, n1):
         table = dash_table.DataTable(
             data=empty_df.to_dict('records'),
             columns=[{"name": i, "id": i} for i in empty_df.columns],
-            style_table={'overflowX': 'auto','height':'500px'},
+            style_table={'overflowX': 'auto', 'height': '500px'},
             style_cell={'font-family': 'Arial', 'minWidth': 150, 'width': 150, 'maxWidth': 150, 'textAlign': 'center'},
             sort_action='native',
         )
