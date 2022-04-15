@@ -161,8 +161,6 @@ layout = html.Div([
         dbc.Col(html.H5('Appointments for the next two weeks:'), ),  # TODO
         dcc.Graph(id='home-two-weeks-insights', ),
     ], style={"margin-top": '2rem'})
-
-    # dcc.Interval(n_intervals=1000,id='refresh-home')
 ], id='home-page')
 
 
